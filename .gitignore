@@ -13,3 +13,4 @@
 *.tfvars
 
 .DS_Store
+terafform/kubeconfig
