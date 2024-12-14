@@ -1,0 +1,47 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: registry.digitalocean.com
+  IMAGE_NAME: chat-service/chat-api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Build and Push Docker Image
+      - name: Build container image
+        run: |
+          docker build \
+            --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} \
+            -t $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DO Container Registry
+        run: doctl registry login --expiry-seconds 600
+
+      - name: Push image to DO Container Registry
+        run: docker push $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+
+      # Deploy to Kubernetes
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save chat-cluster
+
+      - name: Deploy to DigitalOcean Kubernetes
+        run: |
+          set -x  # Enable verbose output
+          helm upgrade --install chat-service ./helm/chat-service \
+            --set image.tag=$(echo $GITHUB_SHA | head -c7) \
+            --set "envVars.DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --wait --timeout 10m \
+            --debug

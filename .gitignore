@@ -1,0 +1,13 @@
+/target
+.env
+.idea
+
+/terafform/terraform.tfvars
+
+/migration/target
+
+# Terraform
+*.terraform
+*.tfstate
+*.tfstate.*
+*.tfvars

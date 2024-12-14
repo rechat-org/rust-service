@@ -1,0 +1,11 @@
+nameOverride: "client-a"
+ingress:
+  hosts:
+    - host: client-a.chat-service.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+envVars:
+  CLIENT_ID: "client-a"
+  DATABASE_URL: "postgres://postgres:123@client-a-db:5432/chat-api"
