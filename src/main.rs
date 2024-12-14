@@ -28,7 +28,7 @@ async fn main() {
 
     // Initialize Redis
     let redis_config = RedisConfig::new();
-    let redis_store = RedisStore::new(redis_config).expect("Failed to create Redis client");
+    let redis_store = RedisStore::new(redis_config).expect("Failed to create Redis client.");
 
     // Verify Redis connection
     redis_store.ping().await.expect("Could not ping Redis");

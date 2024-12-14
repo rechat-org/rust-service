@@ -9,8 +9,6 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
-use tungstenite::protocol::frame::coding::CloseCode;
-use tungstenite::protocol::CloseFrame;
 
 pub fn api_router() -> Router<AppState> {
     Router::new()

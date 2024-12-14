@@ -1,4 +1,4 @@
-use redis::Client;
+use redis::{Client, RedisResult};
 use std::env;
 
 #[derive(Clone)]
@@ -8,13 +8,14 @@ pub struct RedisConfig {
 
 impl RedisConfig {
     pub fn new() -> Self {
-        let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let redis_url =
+            env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
         Self { url: redis_url }
     }
 
-    pub fn create_client(&self) -> redis::RedisResult<Client> {
-        redis::Client::open(self.url.as_str())
+    pub fn create_client(&self) -> RedisResult<Client> {
+        Client::open(self.url.clone())
     }
 }
 

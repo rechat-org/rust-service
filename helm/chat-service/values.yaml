@@ -24,7 +24,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/websocket-services: "chat-service"
   hosts:
-    - host: "146.190.199.93"  # Your ingress IP
+    - host: "" # Remove the host constraint
       paths:
         - path: /
           pathType: Prefix

@@ -1,4 +1,3 @@
-# Use the official Rust image as the base
 FROM rust:1.81
 
 # Set the working directory in the container
@@ -15,7 +14,7 @@ RUN cargo build --release
 ENV HOST=0.0.0.0
 ENV PORT=3001
 
-# Expose the port the app runs on.
+# Expose the port
 EXPOSE 3001
 
 # Run the binary
