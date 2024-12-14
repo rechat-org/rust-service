@@ -17,8 +17,14 @@ ingress:
   className: nginx
   annotations:
     kubernetes.io/ingress.class: nginx
+    # Adding WebSocket support annotations
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/websocket-services: "chat-service"
   hosts:
-    - host: chat.local
+    - host: "146.190.199.93"  # Your ingress IP
       paths:
         - path: /
           pathType: Prefix
@@ -34,5 +40,5 @@ resources:
 envVars:
   DATABASE_URL: ""
   REDIS_URL: ""
-  PORT: "3001"
+  PORT: "3000"  # Changed to match service port
   HOST: "0.0.0.0"
