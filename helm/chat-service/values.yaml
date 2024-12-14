@@ -33,5 +33,6 @@ resources:
 
 envVars:
   DATABASE_URL: ""
-  PORT: "3000"
+  REDIS_URL: ""
+  PORT: "3001"
   HOST: "0.0.0.0"

@@ -7,7 +7,7 @@ pub async fn health_check(State(state): State<AppState>) -> String {
     match state.db.ping().await {
         Ok(_) => {
             tracing::info!("Database ping successful");
-            "🟢 Database connected!".to_string()
+            "🟢 Database connected 🟢".to_string()
         }
         Err(e) => {
             tracing::error!("Database ping failed: {}", e);

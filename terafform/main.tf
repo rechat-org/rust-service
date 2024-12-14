@@ -83,3 +83,33 @@ output "database_url" {
   value     = "postgres://${digitalocean_database_user.chat_user.name}:${digitalocean_database_user.chat_user.password}@${digitalocean_database_cluster.postgres_cluster.host}:${digitalocean_database_cluster.postgres_cluster.port}/chat_api"
   sensitive = true
 }
+
+
+# Create a Redis database cluster
+resource "digitalocean_database_cluster" "redis_cluster" {
+  name       = "chat-redis-cluster"
+  engine     = "redis"
+  version    = "7"
+  size       = "db-s-1vcpu-1gb"  # Smallest size for dev
+  region     = var.region
+  node_count = 1  # Single node for dev
+}
+
+# Add Redis connection outputs
+output "redis_host" {
+  value = digitalocean_database_cluster.redis_cluster.host
+}
+
+output "redis_port" {
+  value = digitalocean_database_cluster.redis_cluster.port
+}
+
+output "redis_password" {
+  value     = digitalocean_database_cluster.redis_cluster.password
+  sensitive = true
+}
+
+output "redis_url" {
+  value     = "redis://:${digitalocean_database_cluster.redis_cluster.password}@${digitalocean_database_cluster.redis_cluster.host}:${digitalocean_database_cluster.redis_cluster.port}"
+  sensitive = true
+}

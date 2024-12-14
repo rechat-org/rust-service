@@ -19,8 +19,9 @@ jobs:
       - name: Build container image
         run: |
           docker build \
-            --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} \
-            -t $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
+            --build-arg DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --build-arg REDIS_URL="${{ secrets.REDIS_URL }}" \
+            -t $REGISTRY/$IMAGE_NAME:${GITHUB_SHA::7} .
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -31,7 +32,7 @@ jobs:
         run: doctl registry login --expiry-seconds 600
 
       - name: Push image to DO Container Registry
-        run: docker push $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+        run: docker push $REGISTRY/$IMAGE_NAME:${GITHUB_SHA::7}
 
       # Deploy to Kubernetes
       - name: Save DigitalOcean kubeconfig
@@ -43,5 +44,6 @@ jobs:
           helm upgrade --install chat-service ./helm/chat-service \
             --set image.tag=$(echo $GITHUB_SHA | head -c7) \
             --set "envVars.DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --set "envVars.REDIS_URL=${{ secrets.REDIS_URL }}" \
             --wait --timeout 10m \
             --debug

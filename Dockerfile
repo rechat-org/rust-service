@@ -13,10 +13,10 @@ RUN cargo build --release
 
 # Set environment variables
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=3001
 
 # Expose the port the app runs on.
-EXPOSE 3000
+EXPOSE 3001
 
 # Run the binary
 CMD ["./target/release/chat-api"]

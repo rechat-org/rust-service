@@ -3,8 +3,8 @@ mod handlers;
 mod router;
 mod state;
 
-use axum::{extract::State};
-use config::{AppConfig, Database};
+use axum::extract::State;
+use config::{AppConfig, Database,RedisConfig, RedisStore};
 use router::api_router;
 use state::AppState;
 use tracing_subscriber;
@@ -26,8 +26,15 @@ async fn main() {
     // Verify database connection
     database.ping().await.expect("Could not ping database");
 
+    // Initialize Redis
+    let redis_config = RedisConfig::new();
+    let redis_store = RedisStore::new(redis_config).expect("Failed to create Redis client");
+
+    // Verify Redis connection
+    redis_store.ping().await.expect("Could not ping Redis");
+
     // Create app state
-    let state = AppState::new(database);
+    let state = AppState::new(database, redis_store);
 
     // Build our application with routes
     let app = api_router().with_state(state);
@@ -40,12 +47,4 @@ async fn main() {
 
     // Start the server
     axum::serve(listener, app).await.unwrap();
-}
-
-// Health check endpoint
-async fn health_check(State(state): State<AppState>) -> String {
-    match state.db.ping().await {
-        Ok(_) => "🟢 Database connected!".to_string(),
-        Err(e) => format!("🔴 Database error: {}", e),
-    }
 }
