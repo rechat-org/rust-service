@@ -68,7 +68,7 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
                                 .as_secs();
                             msg.room_id = ws_room_id.clone();
 
-                            // Publish to Redis
+                            // Publish via Redis
                             if let Ok(json) = serde_json::to_string(&msg) {
                                 println!("Publishing message: {}", json);
                                 let mut conn = redis_publisher
