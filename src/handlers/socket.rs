@@ -13,6 +13,7 @@ use tracing::{error, info};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatMessage {
     user_id: String,
+    username: String,
     room_id: String,
     content: String,
     timestamp: u64,
