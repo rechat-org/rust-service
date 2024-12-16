@@ -1,7 +1,20 @@
-### Send POST request with json body
+### POST create participant with name
 POST http://127.0.0.1:3001/api/participant
+Content-Type: application/json
+
+{
+  "name": "yo-nemae"
+}
+
+
+### POST create channel with name
+POST http://127.0.0.1:3001/api/channel
 Content-Type: application/json
 
 {
   "name": "yoyoo"
 }
+
+### GET create channel with name
+GET http://127.0.0.1:3001/api/channel/efdd57bd-c852-43a0-8ddd-0c2894e50c05
+Accept: application/json
