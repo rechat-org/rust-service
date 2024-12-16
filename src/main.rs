@@ -2,8 +2,8 @@ mod config;
 mod handlers;
 mod router;
 mod state;
+mod entities;
 
-use axum::extract::State;
 use config::{AppConfig, Database,RedisConfig, RedisStore};
 use router::api_router;
 use state::AppState;

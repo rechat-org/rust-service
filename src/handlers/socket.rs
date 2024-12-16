@@ -32,7 +32,7 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
 
     // Get Redis connection
     let redis = state.redis.clone();
-    let mut redis_conn = match redis.client.get_async_connection().await {
+    let redis_conn = match redis.client.get_async_connection().await {
         Ok(conn) => conn,
         Err(e) => {
             error!("Redis connection failed: {}", e);

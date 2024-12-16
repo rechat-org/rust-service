@@ -1,0 +1,7 @@
+### Send POST request with json body
+POST http://127.0.0.1:3001/api/participant
+Content-Type: application/json
+
+{
+  "name": "yoyoo"
+}
