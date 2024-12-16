@@ -106,3 +106,30 @@ pub async fn get_channel_by_id(
         }
     }
 }
+
+pub async fn get_channels(state: State<AppState>) -> impl IntoResponse {
+    let db = &state.db.connection;
+
+    match Channel::find().all(db).await {
+        Ok(channels) => {
+            let response = channels
+                .into_iter()
+                .map(|channel| CreateChannelResponse {
+                    id: channel.id,
+                    name: channel.name,
+                })
+                .collect::<Vec<_>>();
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Err(err) => {
+            tracing::error!("Database error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    message: "Failed to fetch channels".to_string(),
+                }),
+            )
+                .into_response()
+        }
+    }
+}

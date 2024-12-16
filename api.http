@@ -1,5 +1,7 @@
+@baseUrl = {{baseUrl}}
+
 ### POST create participant with name
-POST http://127.0.0.1:3001/api/participant
+POST {{baseUrl}}/participant
 Content-Type: application/json
 
 {
@@ -8,7 +10,7 @@ Content-Type: application/json
 
 
 ### POST create channel with name
-POST http://127.0.0.1:3001/api/channel
+POST {{baseUrl}}/channel
 Content-Type: application/json
 
 {
@@ -16,5 +18,5 @@ Content-Type: application/json
 }
 
 ### GET create channel with name
-GET http://127.0.0.1:3001/api/channel/efdd57bd-c852-43a0-8ddd-0c2894e50c05
+GET {{baseUrl}}/channel/efdd57bd-c852-43a0-8ddd-0c2894e50c05
 Accept: application/json

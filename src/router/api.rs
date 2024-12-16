@@ -11,8 +11,9 @@ pub fn api_router() -> Router<AppState> {
         .nest(
             "/api",
             Router::new() // User routes
-                .route("/participant", post(handlers::create_participant))
-                .route("/channel", post(handlers::create_channel))
-                .route("/channel/:channel_id", get(handlers::get_channel_by_id)),
+                .route("/participants", post(handlers::create_participant))
+                .route("/channels", get(handlers::get_channels))
+                .route("/channels", post(handlers::create_channel))
+                .route("/channels/:channel_id", get(handlers::get_channel_by_id)),
         )
 }
