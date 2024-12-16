@@ -1,7 +1,7 @@
 @baseUrl = {{baseUrl}}
 
 ### POST create participant with name
-POST {{baseUrl}}/participant
+POST {{baseUrl}}/api/participants
 Content-Type: application/json
 
 {
@@ -10,13 +10,17 @@ Content-Type: application/json
 
 
 ### POST create channel with name
-POST {{baseUrl}}/channel
+POST {{baseUrl}}/api/channels
 Content-Type: application/json
 
 {
   "name": "yoyoo"
 }
 
-### GET create channel with name
-GET {{baseUrl}}/channel/efdd57bd-c852-43a0-8ddd-0c2894e50c05
+### GET channel by id
+GET {{baseUrl}}/api/channels/efdd57bd-c852-43a0-8ddd-0c2894e50c05
+Accept: application/json
+
+### GET all channgels
+GET {{baseUrl}}/api/channels
 Accept: application/json
