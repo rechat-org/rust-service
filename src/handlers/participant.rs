@@ -11,6 +11,7 @@ pub struct CreateParticipantResponse {
     id: Uuid,
     name: String,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct CreateParticipantRequest {
     name: String,
