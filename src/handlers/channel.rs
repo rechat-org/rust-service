@@ -60,4 +60,49 @@ pub async fn create_channel(
     }
 }
 
-pub async fn get_channel_by_id(state: State<AppState>, Path(room_id): Path<String>) {}
+pub async fn get_channel_by_id(
+    state: State<AppState>,
+    Path(room_id): Path<String>,
+) -> impl IntoResponse {
+    let db = &state.db.connection;
+
+    let room_id = match Uuid::parse_str(&room_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    message: "Invalid UUID format".to_string(),
+                }),
+            )
+                .into_response();
+        }
+    };
+
+    match Channel::find_by_id(room_id).one(db).await {
+        Ok(Some(channel)) => {
+            let response = CreateChannelResponse {
+                id: channel.id,
+                name: channel.name,
+            };
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                message: "Channel not found".to_string(),
+            }),
+        )
+            .into_response(),
+        Err(err) => {
+            tracing::error!("Database error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    message: "Failed to fetch channel".to_string(),
+                }),
+            )
+                .into_response()
+        }
+    }
+}
