@@ -1,4 +1,4 @@
-use crate::entities::{messages, prelude::*};
+use crate::entities::{channel, messages, prelude::*};
 use axum::{extract::Path, Json};
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use sea_orm::*;
@@ -19,7 +19,7 @@ pub struct CreateMessageResponse {
 pub struct CreateMessageRequest {
     content: String,
     participant_id: Uuid,
-    channel_id: Uuid,
+    channel_name: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -37,25 +37,51 @@ pub async fn create_message(
 
     let content = payload.content;
     let participant_id = payload.participant_id;
-    let channel_id = payload.channel_id;
+    let channel_name = payload.channel_name;
+
+    let channel = match Channel::find()
+        .filter(channel::Column::Name.eq(channel_name))
+        .one(db)
+        .await
+    {
+        Ok(Some(channel)) => channel,
+        Ok(None) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    message: "Channel with this name does not exist".to_string(),
+                }),
+            )
+                .into_response();
+        }
+        Err(err) => {
+            tracing::error!("Database error: {:?}", err);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    message: "Failed to fetch channel".to_string(),
+                }),
+            )
+                .into_response();
+        }
+    };
 
     let new_message = messages::ActiveModel {
         id: Set(Uuid::new_v4()),
         content: Set(content.clone()),
         participant_id: Set(participant_id),
-        channel_id: Set(channel_id),
+        channel_id: Set(channel.id),
         created_at: Set(chrono::Utc::now().naive_utc()),
         updated_at: Set(chrono::Utc::now().naive_utc()),
     };
 
-    match Messages::insert(new_message)
-        .exec(db).await {
+    match Messages::insert(new_message).exec(db).await {
         Ok(message) => {
             let response = CreateMessageResponse {
                 id: message.last_insert_id,
                 content,
                 participant_id,
-                channel_id,
+                channel_id: channel.id,
             };
             (StatusCode::CREATED, Json(response)).into_response()
         }

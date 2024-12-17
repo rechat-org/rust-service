@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20241216_081358_channel_participant_relationship;
 mod m20241217_083459_messages;
+mod m20241217_115248_channel_name_is_unique;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20241216_081358_channel_participant_relationship::Migration),
             Box::new(m20241217_083459_messages::Migration),
+            Box::new(m20241217_115248_channel_name_is_unique::Migration),
         ]
     }
 }
