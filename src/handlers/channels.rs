@@ -34,7 +34,7 @@ pub async fn create_channel(
 
     let db = &state.db.connection;
     let name = payload.name;
-    
+
     // checks if channel name exist
     match Channel::find().filter(channel::Column::Name.contains(name.clone())).one(db).await {
         Ok(Some(_)) => {
@@ -134,7 +134,9 @@ pub async fn get_channel_by_id(
 pub async fn get_channels(state: State<AppState>) -> impl IntoResponse {
     let db = &state.db.connection;
 
-    match Channel::find().all(db).await {
+    match Channel::find()
+        .order_by_desc(channel::Column::CreatedAt)
+        .all(db).await {
         Ok(channels) => {
             let response = channels
                 .into_iter()

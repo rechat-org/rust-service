@@ -48,7 +48,8 @@ pub async fn create_message(
         updated_at: Set(chrono::Utc::now().naive_utc()),
     };
 
-    match Messages::insert(new_message).exec(db).await {
+    match Messages::insert(new_message)
+        .exec(db).await {
         Ok(message) => {
             let response = CreateMessageResponse {
                 id: message.last_insert_id,
@@ -91,6 +92,7 @@ pub async fn get_messages_by_channel_id(
 
     match Messages::find()
         .filter(messages::Column::ChannelId.eq(channel_id))
+        .order_by_asc(messages::Column::CreatedAt)
         .all(db)
         .await
     {
