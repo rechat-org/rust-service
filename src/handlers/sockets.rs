@@ -11,12 +11,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{error, info};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChatMessage {
-    user_id: String,
-    username: String,
-    room_id: String,
+pub struct ClientSideChatMessage {
+    participant_id: String,
+    channel_name: String,
     content: String,
-    timestamp: u64,
 }
 
 pub async fn chat_ws_handler(
@@ -60,14 +58,13 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
             match result {
                 Ok(Message::Text(text)) => {
                     // Parse the incoming message
-                    match serde_json::from_str::<ChatMessage>(&text) {
+                    match serde_json::from_str::<ClientSideChatMessage>(&text) {
                         Ok(mut msg) => {
                             // Add server-side timestamp
-                            msg.timestamp = SystemTime::now()
+                            let timestamp = SystemTime::now()
                                 .duration_since(UNIX_EPOCH)
                                 .unwrap()
                                 .as_secs();
-                            msg.room_id = ws_room_id.clone();
 
                             // Publish via Redis
                             if let Ok(json) = serde_json::to_string(&msg) {
@@ -98,7 +95,11 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
             }
         }
     });
-
+//{
+    //   "channel_name": "general",
+    //   "content": "as",
+    //   "participant_id": "0beada25-955d-4ffd-b60d-e38079633357"
+    // }
     // Handle messages from Redis and send them to WebSocket
     let mut send_task = tokio::spawn(async move {
         let mut pubsub_stream = pubsub.on_message();

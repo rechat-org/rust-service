@@ -34,7 +34,7 @@ POST {{baseUrl}}/api/messages
 Content-Type: application/json
 
 {
-  "channel_id": "364cfb0d-8ef5-4b35-a3de-cc0d80c0ff4d",
+  "channel_name": "public",
   "participant_id": "9ee50c4f-095b-4d71-bb8c-9d5ad2688b7f",
   "content": "hello"
 }
