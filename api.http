@@ -14,7 +14,7 @@ POST {{baseUrl}}/api/channels
 Content-Type: application/json
 
 {
-  "name": "yoyoo"
+  "name": "general"
 }
 
 ### GET channel by id
@@ -30,11 +30,11 @@ GET {{baseUrl}}/api/messages/efdd57bd-c852-43a0-8ddd-0c2894e50c05
 Accept: application/json
 
 ### POST a new message
-GET {{baseUrl}}/api/messages
+POST {{baseUrl}}/api/messages
 Content-Type: application/json
 
 {
-  "channel_id": "efdd57bd-c852-43a0-8ddd-0c2894e50c05",
+  "channel_id": "364cfb0d-8ef5-4b35-a3de-cc0d80c0ff4d",
   "participant_id": "9ee50c4f-095b-4d71-bb8c-9d5ad2688b7f",
   "content": "hello"
 }

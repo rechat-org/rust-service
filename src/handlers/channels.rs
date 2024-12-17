@@ -34,6 +34,30 @@ pub async fn create_channel(
 
     let db = &state.db.connection;
     let name = payload.name;
+    
+    // checks if channel name exist
+    match Channel::find().filter(channel::Column::Name.contains(name.clone())).one(db).await {
+        Ok(Some(_)) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    message: "Channel with this name already exists".to_string(),
+                }),
+            )
+                .into_response();
+        }
+        Ok(None) => {}
+        Err(err) => {
+            tracing::error!("Database error: {:?}", err);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    message: "Failed to fetch channel".to_string(),
+                }),
+            )
+                .into_response();
+        }
+    }
 
     let new_channel = channel::ActiveModel {
         id: Set(Uuid::new_v4()),
