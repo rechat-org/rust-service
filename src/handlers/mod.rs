@@ -1,13 +1,14 @@
 mod health;
-mod socket;
-mod channel;
-mod participant;
+mod sockets;
+mod channels;
+mod participants;
 
 pub use health::health_check;
-pub use socket::chat_ws_handler;
+pub use sockets::chat_ws_handler;
 
-pub use channel::create_channel;
-pub use channel::get_channel_by_id;
-pub use channel::get_channels;
+pub use channels::create_channel;
+pub use channels::get_channel_by_id;
+pub use channels::get_channels;
 
-pub use participant::create_participant;
+pub use participants::create_participant;
+pub use participants::get_participants_count;

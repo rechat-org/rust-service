@@ -12,8 +12,11 @@ pub fn api_router() -> Router<AppState> {
             "/api",
             Router::new() // User routes
                 .route("/participants", post(handlers::create_participant))
+                .route("/participants/count", post(handlers::get_participants_count))
                 .route("/channels", get(handlers::get_channels))
                 .route("/channels", post(handlers::create_channel))
-                .route("/channels/:channel_id", get(handlers::get_channel_by_id)),
+                .route("/channels/:channel_id", get(handlers::get_channel_by_id))
+                .route("/messages/", get(handlers::get_channel_by_id))
+                .route("/messages/", post(handlers::get_channel_by_id)),
         )
 }
