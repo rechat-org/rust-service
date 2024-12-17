@@ -95,11 +95,7 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
             }
         }
     });
-//{
-    //   "channel_name": "general",
-    //   "content": "as",
-    //   "participant_id": "0beada25-955d-4ffd-b60d-e38079633357"
-    // }
+   
     // Handle messages from Redis and send them to WebSocket
     let mut send_task = tokio::spawn(async move {
         let mut pubsub_stream = pubsub.on_message();
