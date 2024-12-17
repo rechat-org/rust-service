@@ -62,11 +62,11 @@ pub async fn create_channel(
 
 pub async fn get_channel_by_id(
     state: State<AppState>,
-    Path(room_id): Path<String>,
+    Path(channel_id): Path<String>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
 
-    let room_id = match Uuid::parse_str(&room_id) {
+    let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
         Err(_) => {
             return (
@@ -79,7 +79,7 @@ pub async fn get_channel_by_id(
         }
     };
 
-    match Channel::find_by_id(room_id).one(db).await {
+    match Channel::find_by_id(channel_id).one(db).await {
         Ok(Some(channel)) => {
             let response = CreateChannelResponse {
                 id: channel.id,

@@ -16,7 +16,7 @@ pub fn api_router() -> Router<AppState> {
                 .route("/channels", get(handlers::get_channels))
                 .route("/channels", post(handlers::create_channel))
                 .route("/channels/:channel_id", get(handlers::get_channel_by_id))
-                .route("/messages/", get(handlers::get_channel_by_id))
-                .route("/messages/", post(handlers::get_channel_by_id)),
+                .route("/messages/:channel_id", get(handlers::get_messages_by_channel_id))
+                .route("/messages", post(handlers::create_message)),
         )
 }
