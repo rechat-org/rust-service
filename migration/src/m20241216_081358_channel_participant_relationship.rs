@@ -102,7 +102,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Channel {
+pub enum Channel {
     Table,
     Id,
     Name,
@@ -111,7 +111,7 @@ enum Channel {
 }
 
 #[derive(DeriveIden)]
-enum Participant {
+pub enum Participant {
     Table,
     Id,
     Name,
@@ -120,7 +120,7 @@ enum Participant {
 }
 
 #[derive(DeriveIden)]
-enum ChannelParticipant {
+pub enum ChannelParticipant {
     Table,
     ChannelId,
     ParticipantId,

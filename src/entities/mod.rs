@@ -4,4 +4,5 @@ pub mod prelude;
 
 pub mod channel;
 pub mod channel_participant;
+pub mod messages;
 pub mod participant;
