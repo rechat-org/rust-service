@@ -1,7 +1,6 @@
 use crate::state::AppState;
 use axum::extract::State;
 
-// Modify your health check to be more verbose
 pub async fn health_check(State(state): State<AppState>) -> String {
     tracing::info!("Health check endpoint called");
     match state.db.ping().await {

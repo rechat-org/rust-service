@@ -1,4 +1,5 @@
 use crate::entities::{channel, messages, prelude::*};
+use crate::utils::ResponseBuilder;
 use axum::{extract::Path, Json};
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use sea_orm::*;
@@ -45,25 +46,8 @@ pub async fn create_message(
         .await
     {
         Ok(Some(channel)) => channel,
-        Ok(None) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    message: "Channel with this name does not exist".to_string(),
-                }),
-            )
-                .into_response();
-        }
-        Err(err) => {
-            tracing::error!("Database error: {:?}", err);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    message: "Failed to fetch channel".to_string(),
-                }),
-            )
-                .into_response();
-        }
+        Ok(None) => return ResponseBuilder::bad_request("Channel not found"),
+        Err(err) => return ResponseBuilder::db_error(err, "Failed to check if channel exists"),
     };
 
     let new_message = messages::ActiveModel {
@@ -83,15 +67,9 @@ pub async fn create_message(
                 participant_id,
                 channel_id: channel.id,
             };
-            (StatusCode::CREATED, Json(response)).into_response()
+            ResponseBuilder::created(response)
         }
-        Err(err) => {
-            tracing::error!("Failed to create participant: {:?}", err);
-            let error_response = ErrorResponse {
-                message: "Failed to create participant".to_string(),
-            };
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
-        }
+        Err(err) => ResponseBuilder::db_error(err, "Failed to create message"),
     }
 }
 
@@ -105,15 +83,7 @@ pub async fn get_messages_by_channel_id(
 
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    message: "Invalid UUID format".to_string(),
-                }),
-            )
-                .into_response();
-        }
+        Err(_) => return ResponseBuilder::bad_request("Invalid channel ID"),
     };
 
     match Messages::find()
@@ -132,14 +102,8 @@ pub async fn get_messages_by_channel_id(
                     channel_id: message.channel_id,
                 })
                 .collect::<Vec<_>>();
-            (StatusCode::OK, Json(messages)).into_response()
+            ResponseBuilder::ok(messages)
         }
-        Err(err) => {
-            tracing::error!("Failed to get messages: {:?}", err);
-            let error_response = ErrorResponse {
-                message: "Failed to get messages".to_string(),
-            };
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
-        }
+        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch messages"),
     }
 }

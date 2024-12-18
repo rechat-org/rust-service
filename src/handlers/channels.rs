@@ -1,11 +1,12 @@
-use crate::entities::{channel, channel::Entity as Channel, prelude::*};
+use crate::entities::{channel, channel::Entity as Channel};
 use crate::state::AppState;
+use crate::utils::{ResponseBuilder};
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse},
     Json,
 };
+
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -36,26 +37,17 @@ pub async fn create_channel(
     let name = payload.name;
 
     // checks if channel name exist
-    match Channel::find().filter(channel::Column::Name.contains(name.clone())).one(db).await {
+    match Channel::find()
+        .filter(channel::Column::Name.contains(name.clone()))
+        .one(db)
+        .await
+    {
         Ok(Some(_)) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    message: "Channel with this name already exists".to_string(),
-                }),
-            )
-                .into_response();
+            return ResponseBuilder::bad_request("Channel with this name already exists");
         }
         Ok(None) => {}
         Err(err) => {
-            tracing::error!("Database error: {:?}", err);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    message: "Failed to fetch channel".to_string(),
-                }),
-            )
-                .into_response();
+            return ResponseBuilder::db_error(err, "Failed to check if channel name exists");
         }
     }
 
@@ -72,15 +64,9 @@ pub async fn create_channel(
                 id: channel.last_insert_id,
                 name,
             };
-            (StatusCode::CREATED, Json(response)).into_response()
+            ResponseBuilder::ok(response)
         }
-        Err(err) => {
-            tracing::error!("Failed to create channel: {:?}", err);
-            let error_response = ErrorResponse {
-                message: "Failed to create channel".to_string(), // Fixed error message
-            };
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
-        }
+        Err(err) => ResponseBuilder::db_error(err, "Failed to create channel"),
     }
 }
 
@@ -93,13 +79,7 @@ pub async fn get_channel_by_id(
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    message: "Invalid UUID format".to_string(),
-                }),
-            )
-                .into_response();
+            return ResponseBuilder::bad_request("Invalid channel ID");
         }
     };
 
@@ -109,25 +89,10 @@ pub async fn get_channel_by_id(
                 id: channel.id,
                 name: channel.name,
             };
-            (StatusCode::OK, Json(response)).into_response()
+            ResponseBuilder::ok(response)
         }
-        Ok(None) => (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                message: "Channel not found".to_string(),
-            }),
-        )
-            .into_response(),
-        Err(err) => {
-            tracing::error!("Database error: {:?}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    message: "Failed to fetch channel".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Ok(None) => ResponseBuilder::not_found("Channel not found"),
+        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch channel"),
     }
 }
 
@@ -136,7 +101,9 @@ pub async fn get_channels(state: State<AppState>) -> impl IntoResponse {
 
     match Channel::find()
         .order_by_desc(channel::Column::CreatedAt)
-        .all(db).await {
+        .all(db)
+        .await
+    {
         Ok(channels) => {
             let response = channels
                 .into_iter()
@@ -145,17 +112,8 @@ pub async fn get_channels(state: State<AppState>) -> impl IntoResponse {
                     name: channel.name,
                 })
                 .collect::<Vec<_>>();
-            (StatusCode::OK, Json(response)).into_response()
+            ResponseBuilder::ok(response)
         }
-        Err(err) => {
-            tracing::error!("Database error: {:?}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    message: "Failed to fetch channels".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch channels"),
     }
 }

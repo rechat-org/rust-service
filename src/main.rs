@@ -3,8 +3,9 @@ mod handlers;
 mod router;
 mod state;
 mod entities;
+mod utils;
 
-use config::{AppConfig, Database,RedisConfig, RedisStore};
+use config::{AppConfig, Database, RedisConfig, RedisStore};
 use router::api_router;
 use state::AppState;
 use tracing_subscriber;
