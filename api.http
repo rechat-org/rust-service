@@ -45,6 +45,7 @@ POST {{baseUrl}}/api/users/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi@outlook.com",
-  "password": "123123"
+  "email": "paschalidi+orga@outlook.com",
+  "password": "123123",
+  "organization_name": "no1"
 }

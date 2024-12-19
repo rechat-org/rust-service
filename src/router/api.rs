@@ -11,7 +11,7 @@ pub fn api_router() -> Router<AppState> {
         .nest(
             "/api",
             Router::new()
-                
+
                 .route("/participants", post(handlers::create_participant))
                 .route("/participants/count", get(handlers::get_participants_count))
                 .route("/channels", get(handlers::get_channels))
@@ -19,7 +19,7 @@ pub fn api_router() -> Router<AppState> {
                 .route("/channels/:channel_id", get(handlers::get_channel_by_id))
                 .route("/messages/:channel_id", get(handlers::get_messages_by_channel_id))
                 .route("/messages", post(handlers::create_message))
-            
-                .route("/users/create", post(handlers::create_user)),
+
+                .route("/organization_accounts/create", post(handlers::create_user_and_organization)),
         )
 }

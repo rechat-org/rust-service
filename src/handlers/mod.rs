@@ -3,7 +3,7 @@ mod sockets;
 mod channels;
 mod participants;
 mod messages;
-mod users;
+mod organization_accounts;
 
 pub use health::health_check;
 pub use sockets::chat_ws_handler;
@@ -19,4 +19,4 @@ pub use participants::get_participants_count;
 pub use messages::create_message;
 pub use messages::get_messages_by_channel_id;
 
-pub use users::create_user;
+pub use organization_accounts::create_user_and_organization;

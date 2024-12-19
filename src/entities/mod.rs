@@ -8,4 +8,5 @@ pub mod messages;
 pub mod organization_members;
 pub mod organizations;
 pub mod participant;
+pub mod sea_orm_active_enums;
 pub mod users;
