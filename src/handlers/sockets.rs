@@ -7,7 +7,6 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{error, info};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,21 +51,12 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
 
     // Handle incoming WebSocket messages
     let redis_publisher = redis.client.clone();
-    let ws_room_id = room_id.clone();
     let mut recv_task = tokio::spawn(async move {
         while let Some(result) = receiver.next().await {
             match result {
                 Ok(Message::Text(text)) => {
-                    // Parse the incoming message
                     match serde_json::from_str::<ClientSideChatMessage>(&text) {
-                        Ok(mut msg) => {
-                            // Add server-side timestamp
-                            let timestamp = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
-
-                            // Publish via Redis
+                        Ok(msg) => {
                             if let Ok(json) = serde_json::to_string(&msg) {
                                 println!("Publishing message: {}", json);
                                 let mut conn = redis_publisher
@@ -74,7 +64,6 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
                                     .await
                                     .expect("Failed to get Redis connection");
 
-                                // Publish to the channel with explicit type annotation
                                 match conn.publish::<_, _, ()>(&channel, json).await {
                                     Ok(_) => println!("Successfully published to {}", channel),
                                     Err(e) => error!("Failed to publish to Redis: {}", e),
@@ -114,7 +103,7 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
     tokio::select! {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
-    };
+    }
 
     info!("Client disconnected from room: {}", room_id);
 }

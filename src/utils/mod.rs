@@ -1,3 +1,3 @@
 mod response;
-pub use response::{ApiResponse, ResponseBuilder};
+pub use response::{ResponseBuilder};
 

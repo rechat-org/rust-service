@@ -1,7 +1,7 @@
 use crate::entities::{channel, messages, prelude::*};
 use crate::utils::ResponseBuilder;
 use axum::{extract::Path, Json};
-use axum::{extract::State, http::StatusCode, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

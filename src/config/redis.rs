@@ -31,7 +31,7 @@ impl RedisStore {
     }
 
     pub async fn ping(&self) -> redis::RedisResult<bool> {
-        let mut conn = self.client.get_async_connection().await?;
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
         redis::cmd("PING")
             .query_async(&mut conn)
             .await
