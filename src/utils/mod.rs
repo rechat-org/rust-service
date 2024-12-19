@@ -1,3 +1,3 @@
 mod response;
-pub use response::{ResponseBuilder};
+pub use response::{ServerResponse};
 

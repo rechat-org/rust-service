@@ -10,13 +10,16 @@ pub fn api_router() -> Router<AppState> {
         .route("/ws/chat/:room_id", get(handlers::chat_ws_handler))
         .nest(
             "/api",
-            Router::new() // User routes
+            Router::new()
+                
                 .route("/participants", post(handlers::create_participant))
-                .route("/participants/count", post(handlers::get_participants_count))
+                .route("/participants/count", get(handlers::get_participants_count))
                 .route("/channels", get(handlers::get_channels))
                 .route("/channels", post(handlers::create_channel))
                 .route("/channels/:channel_id", get(handlers::get_channel_by_id))
                 .route("/messages/:channel_id", get(handlers::get_messages_by_channel_id))
-                .route("/messages", post(handlers::create_message)),
+                .route("/messages", post(handlers::create_message))
+            
+                .route("/users/create", post(handlers::create_user)),
         )
 }

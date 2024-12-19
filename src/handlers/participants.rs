@@ -1,5 +1,5 @@
 use crate::entities::{participant, prelude::*};
-use crate::utils::ResponseBuilder;
+use crate::utils::ServerResponse;
 use axum::{extract::State, response::IntoResponse, Json};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
@@ -16,11 +16,6 @@ pub struct CreateParticipantResponse {
 #[derive(Debug, Deserialize)]
 pub struct CreateParticipantRequest {
     name: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    message: String,
 }
 
 pub async fn create_participant(
@@ -46,9 +41,9 @@ pub async fn create_participant(
                 id: participant.last_insert_id,
                 name,
             };
-            ResponseBuilder::created(response)
+            ServerResponse::created(response)
         }
-        Err(err) => ResponseBuilder::db_error(err, "Failed to create participant"),
+        Err(err) => ServerResponse::server_error(err, "Failed to create participant"),
     }
 }
 
@@ -56,7 +51,7 @@ pub async fn get_participants_count(State(state): State<AppState>) -> impl IntoR
     let db = &state.db.connection;
 
     match Participant::find().count(db).await {
-        Ok(count) => ResponseBuilder::ok(count),
-        Err(err) => ResponseBuilder::db_error(err, "Failed to get participants count"),
+        Ok(count) => ServerResponse::ok(count),
+        Err(err) => ServerResponse::server_error(err, "Failed to get participants count"),
     }
 }

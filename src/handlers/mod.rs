@@ -3,9 +3,11 @@ mod sockets;
 mod channels;
 mod participants;
 mod messages;
+mod users;
 
 pub use health::health_check;
 pub use sockets::chat_ws_handler;
+
 
 pub use channels::create_channel;
 pub use channels::get_channel_by_id;
@@ -16,3 +18,5 @@ pub use participants::get_participants_count;
 
 pub use messages::create_message;
 pub use messages::get_messages_by_channel_id;
+
+pub use users::create_user;

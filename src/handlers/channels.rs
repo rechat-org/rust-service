@@ -1,6 +1,6 @@
 use crate::entities::{channel, channel::Entity as Channel};
 use crate::state::AppState;
-use crate::utils::{ResponseBuilder};
+use crate::utils::{ServerResponse};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse},
@@ -22,10 +22,6 @@ pub struct CreateChannelResponse {
     name: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    message: String,
-}
 
 pub async fn create_channel(
     State(state): State<AppState>,
@@ -43,11 +39,11 @@ pub async fn create_channel(
         .await
     {
         Ok(Some(_)) => {
-            return ResponseBuilder::bad_request("Channel with this name already exists");
+            return ServerResponse::bad_request("Channel with this name already exists");
         }
         Ok(None) => {}
         Err(err) => {
-            return ResponseBuilder::db_error(err, "Failed to check if channel name exists");
+            return ServerResponse::server_error(err, "Failed to check if channel name exists");
         }
     }
 
@@ -64,9 +60,9 @@ pub async fn create_channel(
                 id: channel.last_insert_id,
                 name,
             };
-            ResponseBuilder::ok(response)
+            ServerResponse::ok(response)
         }
-        Err(err) => ResponseBuilder::db_error(err, "Failed to create channel"),
+        Err(err) => ServerResponse::server_error(err, "Failed to create channel"),
     }
 }
 
@@ -79,7 +75,7 @@ pub async fn get_channel_by_id(
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
         Err(_) => {
-            return ResponseBuilder::bad_request("Invalid channel ID");
+            return ServerResponse::bad_request("Invalid channel ID");
         }
     };
 
@@ -89,10 +85,10 @@ pub async fn get_channel_by_id(
                 id: channel.id,
                 name: channel.name,
             };
-            ResponseBuilder::ok(response)
+            ServerResponse::ok(response)
         }
-        Ok(None) => ResponseBuilder::not_found("Channel not found"),
-        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch channel"),
+        Ok(None) => ServerResponse::not_found("Channel not found"),
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch channel"),
     }
 }
 
@@ -112,8 +108,8 @@ pub async fn get_channels(state: State<AppState>) -> impl IntoResponse {
                     name: channel.name,
                 })
                 .collect::<Vec<_>>();
-            ResponseBuilder::ok(response)
+            ServerResponse::ok(response)
         }
-        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch channels"),
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch channels"),
     }
 }

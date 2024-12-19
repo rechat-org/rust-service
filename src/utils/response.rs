@@ -3,18 +3,17 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use sea_orm::DbErr;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
+struct ApiResponse<T: Serialize> {
     pub data: Option<T>,
     pub message: Option<String>,
 }
 
-pub struct ResponseBuilder;
+pub struct ServerResponse;
 
-impl ResponseBuilder {
+impl ServerResponse {
     pub fn ok<T: Serialize>(data: T) -> Response {
         (
             StatusCode::OK,
@@ -60,8 +59,8 @@ impl ResponseBuilder {
             .into_response()
     }
 
-    pub fn db_error(err: DbErr, message: &str) -> Response {
-        tracing::error!("Database error: {:?}", err);
+    pub fn server_error<E: std::fmt::Debug>(err: E, message: &str) -> Response {
+        tracing::error!("server error: {:?}", err);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<()> {

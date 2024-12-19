@@ -1,5 +1,5 @@
 use crate::entities::{channel, messages, prelude::*};
-use crate::utils::ResponseBuilder;
+use crate::utils::ServerResponse;
 use axum::{extract::Path, Json};
 use axum::{extract::State, response::IntoResponse};
 use sea_orm::*;
@@ -23,11 +23,6 @@ pub struct CreateMessageRequest {
     channel_name: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    message: String,
-}
-
 pub async fn create_message(
     State(state): State<AppState>,
     Json(payload): Json<CreateMessageRequest>,
@@ -46,8 +41,8 @@ pub async fn create_message(
         .await
     {
         Ok(Some(channel)) => channel,
-        Ok(None) => return ResponseBuilder::bad_request("Channel not found"),
-        Err(err) => return ResponseBuilder::db_error(err, "Failed to check if channel exists"),
+        Ok(None) => return ServerResponse::bad_request("Channel not found"),
+        Err(err) => return ServerResponse::server_error(err, "Failed to check if channel exists"),
     };
 
     let new_message = messages::ActiveModel {
@@ -67,9 +62,9 @@ pub async fn create_message(
                 participant_id,
                 channel_id: channel.id,
             };
-            ResponseBuilder::created(response)
+            ServerResponse::created(response)
         }
-        Err(err) => ResponseBuilder::db_error(err, "Failed to create message"),
+        Err(err) => ServerResponse::server_error(err, "Failed to create message"),
     }
 }
 
@@ -83,7 +78,7 @@ pub async fn get_messages_by_channel_id(
 
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
-        Err(_) => return ResponseBuilder::bad_request("Invalid channel ID"),
+        Err(_) => return ServerResponse::bad_request("Invalid channel ID"),
     };
 
     match Messages::find()
@@ -102,8 +97,8 @@ pub async fn get_messages_by_channel_id(
                     channel_id: message.channel_id,
                 })
                 .collect::<Vec<_>>();
-            ResponseBuilder::ok(messages)
+            ServerResponse::ok(messages)
         }
-        Err(err) => ResponseBuilder::db_error(err, "Failed to fetch messages"),
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch messages"),
     }
 }

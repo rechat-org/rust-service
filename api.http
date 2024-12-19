@@ -38,3 +38,13 @@ Content-Type: application/json
   "participant_id": "9ee50c4f-095b-4d71-bb8c-9d5ad2688b7f",
   "content": "hello"
 }
+
+### Create user
+### POST a new message
+POST {{baseUrl}}/api/users/create
+Content-Type: application/json
+
+{
+  "email": "paschalidi@outlook.com",
+  "password": "123123"
+}

@@ -3,4 +3,7 @@
 pub use super::channel::Entity as Channel;
 pub use super::channel_participant::Entity as ChannelParticipant;
 pub use super::messages::Entity as Messages;
+pub use super::organization_members::Entity as OrganizationMembers;
+pub use super::organizations::Entity as Organizations;
 pub use super::participant::Entity as Participant;
+pub use super::users::Entity as Users;

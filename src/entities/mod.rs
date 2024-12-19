@@ -5,4 +5,7 @@ pub mod prelude;
 pub mod channel;
 pub mod channel_participant;
 pub mod messages;
+pub mod organization_members;
+pub mod organizations;
 pub mod participant;
+pub mod users;
