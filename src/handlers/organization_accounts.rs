@@ -1,6 +1,6 @@
 use crate::entities::sea_orm_active_enums::OrganizationRole;
 use crate::entities::{organization_members, organizations, prelude::*, users};
-use crate::utils::ServerResponse;
+use crate::utils::{ServerResponse};
 use axum::Json;
 use axum::{extract::State, response::IntoResponse};
 use chrono::{Duration, Utc};
@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::state::AppState;
+use crate::utils::hash_password_and_salt;
 
 #[derive(Debug, Serialize)]
 pub struct CreateUserResponse {
@@ -67,7 +68,7 @@ pub async fn create_user_and_organization(
 
     let db = &state.db.connection;
     let email = payload.email;
-    let password_hash = payload.password;
+    let password_hash = hash_password_and_salt(&payload.password).unwrap();
 
     // Start a transaction
     let txn = match db.begin().await {
@@ -163,12 +164,12 @@ pub async fn sign_in(
 
     let db = &state.db.connection;
     let email = payload.email;
-    let password_hash = payload.password;
+    let password_hash = hash_password_and_salt(&payload.password).unwrap();
 
     // Check if user exists
     match Users::find()
         .filter(users::Column::Email.eq(&email))
-        .filter(users::Column::PasswordHash.eq(&password_hash))
+        .filter(users::Column::PasswordHash.eq(password_hash))
         .one(db)
         .await
     {

@@ -45,16 +45,16 @@ POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi+memememe@outlook.com",
+  "email": "paschalidi+memememe1@outlook.com",
   "password": "123123123",
   "organization_name": "no1"
 }
 
-### POST a new message
+### POST a sing in
 POST {{baseUrl}}/api/organization_accounts/sign_in
 Content-Type: application/json
 
 {
-  "email": "paschalidi+memememe@outlook.com",
+  "email": "paschalidi+memememe1@outlook.com",
   "password": "123123123"
 }
