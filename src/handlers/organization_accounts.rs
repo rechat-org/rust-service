@@ -1,6 +1,6 @@
 use crate::entities::sea_orm_active_enums::OrganizationRole;
 use crate::entities::{organization_members, organizations, prelude::*, users};
-use crate::utils::{ServerResponse};
+use crate::utils::ServerResponse;
 use axum::Json;
 use axum::{extract::State, response::IntoResponse};
 use chrono::{Duration, Utc};
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::state::AppState;
-use crate::utils::hash_password_and_salt;
+use crate::utils::{hash_password_and_salt,verify_password};
 
 #[derive(Debug, Serialize)]
 pub struct CreateUserResponse {
@@ -166,29 +166,30 @@ pub async fn sign_in(
     let email = payload.email;
     let password_hash = hash_password_and_salt(&payload.password).unwrap();
 
-    // Check if user exists
     match Users::find()
         .filter(users::Column::Email.eq(&email))
-        .filter(users::Column::PasswordHash.eq(password_hash))
         .one(db)
         .await
     {
         Ok(None) => ServerResponse::bad_request("Wrong credentials"),
         Ok(Some(user)) => {
-            let token = match generate_jwt(user.id, &email) {
-                Ok(token) => token,
-                Err(err) => {
-                    return ServerResponse::server_error(err, "Failed to generate JWT token");
-                }
-            };
-            ServerResponse::ok({
-                CreateUserResponse {
-                    id: user.id,
-                    email,
-                    token,
-                }
-            })
+            match verify_password(&payload.password, &user.password_hash) {
+                Ok(true) => {
+                    let token = match generate_jwt(user.id, &email) {
+                        Ok(token) => token,
+                        Err(err) => {
+                            return ServerResponse::server_error(err, "Failed to generate JWT token");
+                        }
+                    };
+                    ServerResponse::ok(CreateUserResponse {
+                        id: user.id,
+                        email,
+                        token,
+                    })
+                },
+                Ok(false) => ServerResponse::bad_request("Wrong credentials"),
+                Err(err) => ServerResponse::server_error(err, "Failed to verify password"),
+            }
         }
         Err(err) => ServerResponse::server_error(err, "Failed to check if user exists"),
-    }
-}
+    }}
