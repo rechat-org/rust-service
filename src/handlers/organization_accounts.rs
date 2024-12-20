@@ -172,7 +172,7 @@ pub async fn sign_in(
         .one(db)
         .await
     {
-        Ok(None) => ServerResponse::bad_request("User already exists"),
+        Ok(None) => ServerResponse::bad_request("Wrong credentials"),
         Ok(Some(user)) => {
             let token = match generate_jwt(user.id, &email) {
                 Ok(token) => token,
