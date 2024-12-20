@@ -27,7 +27,7 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: "api.chatscale.cloud"
+    - host: "api.rechat.cloud"
       paths:
         - path: /
           pathType: Prefix
