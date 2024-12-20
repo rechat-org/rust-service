@@ -41,11 +41,20 @@ Content-Type: application/json
 
 ### Create user
 ### POST a new message
-POST {{baseUrl}}/api/users/create
+POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
   "email": "paschalidi+orga@outlook.com",
   "password": "123123",
   "organization_name": "no1"
+}
+
+### POST a new message
+POST {{baseUrl}}/api/organization_accounts/sign_in
+Content-Type: application/json
+
+{
+  "email": "paschalidi.chris+4232@gmail.com",
+  "password": "paschalidi.chris+4232@gmail.com"
 }

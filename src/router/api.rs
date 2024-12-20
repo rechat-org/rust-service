@@ -20,6 +20,7 @@ pub fn api_router() -> Router<AppState> {
                 .route("/messages/:channel_id", get(handlers::get_messages_by_channel_id))
                 .route("/messages", post(handlers::create_message))
 
-                .route("/organization_accounts/create", post(handlers::create_user_and_organization)),
+                .route("/organization_accounts/create", post(handlers::create_user_and_organization))
+                .route("/organization_accounts/sign_in", post(handlers::sign_in)),
         )
 }

@@ -24,6 +24,11 @@ pub struct CreateUserRequest {
     password: String,
     organization_name: String,
 }
+#[derive(Debug, Deserialize)]
+pub struct CreateSignInRequest {
+    email: String,
+    password: String,
+}
 
 #[derive(Debug, Serialize)]
 struct Claims {
@@ -136,7 +141,7 @@ pub async fn create_user_and_organization(
     };
 
     // Commit the transaction: by doing this,
-    // we ensure that the of operations are grouped - 
+    // we ensure that the of operations are grouped -
     // either all operations succeed, or none of them do.
     if let Err(err) = txn.commit().await {
         return ServerResponse::server_error(err, "Failed to commit transaction");
@@ -148,4 +153,35 @@ pub async fn create_user_and_organization(
         token,
     };
     ServerResponse::created(response)
+}
+
+pub async fn sign_in(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateSignInRequest>,
+) -> impl IntoResponse {
+    tracing::info!("executes: create_user");
+
+    let db = &state.db.connection;
+    let email = payload.email;
+    let password_hash = payload.password;
+
+    // Check if user exists
+    match Users::find()
+        .filter(users::Column::Email.eq(&email))
+        .filter(users::Column::PasswordHash.eq(&password_hash))
+        .one(db)
+        .await
+    {
+        Ok(None) => ServerResponse::bad_request("User already exists"),
+        Ok(Some(user)) => {
+            let token = match generate_jwt(user.id, &email) {
+                Ok(token) => token,
+                Err(err) => {
+                    return ServerResponse::server_error(err, "Failed to generate JWT token");
+                }
+            };
+            ServerResponse::ok(token)
+        }
+        Err(err) => ServerResponse::server_error(err, "Failed to check if user exists"),
+    }
 }
