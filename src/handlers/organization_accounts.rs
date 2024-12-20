@@ -180,7 +180,13 @@ pub async fn sign_in(
                     return ServerResponse::server_error(err, "Failed to generate JWT token");
                 }
             };
-            ServerResponse::ok(token)
+            ServerResponse::ok({
+                CreateUserResponse {
+                    id: user.id,
+                    email,
+                    token,
+                }
+            })
         }
         Err(err) => ServerResponse::server_error(err, "Failed to check if user exists"),
     }
