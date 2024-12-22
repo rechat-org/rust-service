@@ -1,5 +1,7 @@
-use crate::entities::sea_orm_active_enums::OrganizationRole;
-use crate::entities::{organization_members, organizations, prelude::*, users};
+use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole, OrganizationTier};
+use crate::entities::{
+    api_keys, organization_members, organization_tiers, organizations, prelude::*, users,
+};
 use crate::utils::ServerResponse;
 use axum::Json;
 use axum::{extract::State, response::IntoResponse};
@@ -10,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::state::AppState;
-use crate::utils::{hash_password_and_salt,verify_password};
+use crate::utils::{hash_password_and_salt, verify_password};
 
 #[derive(Debug, Serialize)]
 pub struct CreateUserResponse {
@@ -132,6 +134,39 @@ pub async fn create_user_and_organization(
         return ServerResponse::server_error(err, "Failed to create organization member");
     }
 
+    // Create organization tier (Free by default)
+    let new_org_tier = organization_tiers::ActiveModel {
+        organization_id: Set(org_id),
+        tier: Set(OrganizationTier::Free),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+
+    if let Err(err) = OrganizationTiers::insert(new_org_tier).exec(&txn).await {
+        let _ = txn.rollback().await;
+        return ServerResponse::server_error(err, "Failed to create organization tier");
+    }
+
+    // Create initial API key for the organization
+    let api_key = format!("sk_{}", Uuid::new_v4());
+    let new_api_key = api_keys::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        organization_id: Set(org_id),
+        name: Set("Default API Key".to_string()),
+        key: Set(api_key),
+        key_type: Set(ApiKeyType::ReadWrite),
+        created_by_user_id: Set(user_id),
+        last_used_at: Set(None),
+        expires_at: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+
+    if let Err(err) = ApiKeys::insert(new_api_key).exec(&txn).await {
+        let _ = txn.rollback().await;
+        return ServerResponse::server_error(err, "Failed to create API key");
+    }
+
     // Generate JWT token
     let token = match generate_jwt(user_id, &email) {
         Ok(token) => token,
@@ -172,24 +207,23 @@ pub async fn sign_in(
         .await
     {
         Ok(None) => ServerResponse::bad_request("Wrong credentials"),
-        Ok(Some(user)) => {
-            match verify_password(&payload.password, &user.password_hash) {
-                Ok(true) => {
-                    let token = match generate_jwt(user.id, &email) {
-                        Ok(token) => token,
-                        Err(err) => {
-                            return ServerResponse::server_error(err, "Failed to generate JWT token");
-                        }
-                    };
-                    ServerResponse::ok(CreateUserResponse {
-                        id: user.id,
-                        email,
-                        token,
-                    })
-                },
-                Ok(false) => ServerResponse::bad_request("Wrong credentials"),
-                Err(err) => ServerResponse::server_error(err, "Failed to verify password"),
+        Ok(Some(user)) => match verify_password(&payload.password, &user.password_hash) {
+            Ok(true) => {
+                let token = match generate_jwt(user.id, &email) {
+                    Ok(token) => token,
+                    Err(err) => {
+                        return ServerResponse::server_error(err, "Failed to generate JWT token");
+                    }
+                };
+                ServerResponse::ok(CreateUserResponse {
+                    id: user.id,
+                    email,
+                    token,
+                })
             }
-        }
+            Ok(false) => ServerResponse::bad_request("Wrong credentials"),
+            Err(err) => ServerResponse::server_error(err, "Failed to verify password"),
+        },
         Err(err) => ServerResponse::server_error(err, "Failed to check if user exists"),
-    }}
+    }
+}

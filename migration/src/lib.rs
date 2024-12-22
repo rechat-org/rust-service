@@ -6,6 +6,9 @@ mod m20241217_115248_channel_name_is_unique;
 mod m20241217_115805_channel_name_index;
 mod m20241219_124257_users_and_orgs;
 mod m20241219_210908_fixes_organization_table;
+mod m20241222_090954_api_key_management;
+mod m20241222_093435_remove_daily;
+mod m20241222_094252_corrects_timezone_type;
 
 pub struct Migrator;
 
@@ -19,6 +22,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20241217_115805_channel_name_index::Migration),
             Box::new(m20241219_124257_users_and_orgs::Migration),
             Box::new(m20241219_210908_fixes_organization_table::Migration),
+            Box::new(m20241222_090954_api_key_management::Migration),
+            Box::new(m20241222_093435_remove_daily::Migration),
+            Box::new(m20241222_094252_corrects_timezone_type::Migration),
         ]
     }
 }

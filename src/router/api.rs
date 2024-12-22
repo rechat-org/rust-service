@@ -21,6 +21,9 @@ pub fn api_router() -> Router<AppState> {
                 .route("/messages", post(handlers::create_message))
 
                 .route("/organization_accounts/create", post(handlers::create_user_and_organization))
-                .route("/organization_accounts/sign_in", post(handlers::sign_in)),
+                .route("/organization_accounts/sign-in", post(handlers::sign_in))
+                .route("/organizations/generate-api-key", post(handlers::sign_in))
+            
+            ,
         )
 }
