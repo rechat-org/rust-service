@@ -46,5 +46,6 @@ jobs:
             --set image.tag=$(echo $GITHUB_SHA | head -c7) \
             --set "envVars.DATABASE_URL=${{ secrets.DATABASE_URL }}" \
             --set "envVars.REDIS_URL=${{ secrets.REDIS_URL }}" \
+            --set "envVars.JWT_SECRET=${{ secrets.JWT_SECRET }}" \
             --wait --timeout 10m \
             --debug

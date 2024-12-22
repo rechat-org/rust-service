@@ -45,8 +45,8 @@ POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+test7@gmail.com",
-  "password": "paschalidi.chris+test7@gmail.com",
+  "email": "paschalidi.chris+test13@gmail.com",
+  "password": "paschalidi.chris+test13@gmail.com",
   "organization_name": "no1"
 }
 
