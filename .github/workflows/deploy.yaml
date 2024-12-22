@@ -21,6 +21,7 @@ jobs:
           docker build \
             --build-arg DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --build-arg REDIS_URL="${{ secrets.REDIS_URL }}" \
+            --build-arg JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             -t $REGISTRY/$IMAGE_NAME:${GITHUB_SHA::7} .
 
       - name: Install doctl
