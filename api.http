@@ -45,8 +45,8 @@ POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+orgz22@gmail.com",
-  "password": "paschalidi.chris+orgz22@gmail.com",
+  "email": "paschalidi.chris+test7@gmail.com",
+  "password": "paschalidi.chris+test7@gmail.com",
   "organization_name": "no1"
 }
 
@@ -55,6 +55,33 @@ POST {{baseUrl}}/api/organization_accounts/sign_in
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+orgz22@gmail.com",
+  "email": "paschalidi.chris+test1@gmail.com",
   "password": "paschalidi.chris+orgz22@gmail.com"
 }
+
+### POST create new key
+POST {{baseUrl}}/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+
+{
+    "name": "key1",
+    "key_type": "ReadWrite"
+}
+
+### GET all keys
+GET {{baseUrl}}/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+
+### GET the api keys count
+# curl -X GET
+#  'http://localhost:3000/api/organizations/095889fc-e73c-43ef-909f-041400d61d64/keys'
+#  -H 'Content-Type: application/json'
+#  -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2NWMwNTFjZC03OTFjLTQ5ZjMtYjU3ZS1kN2Y3ODIyNGVjN2QiLCJlbWFpbCI6InBhc2NoYWxpZGkuY2hyaXMrdGVzdDJAZ21haWwuY29tIiwiZXhwIjoxNzM1MzAxMjE3LCJpYXQiOjE3MzQ4NjkyMTd9.YmJde1ti1_IY5d6kvezybxTxW5RZbN6DtkwYt-BECjk'
+GET http://localhost:3001/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys/count
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+Content-Type: application/json
+
+
+

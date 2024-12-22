@@ -17,6 +17,7 @@ use crate::utils::{hash_password_and_salt, verify_password};
 #[derive(Debug, Serialize)]
 pub struct CreateUserResponse {
     id: Uuid,
+    organization_id: Uuid,
     email: String,
     token: String,
 }
@@ -27,6 +28,7 @@ pub struct CreateUserRequest {
     password: String,
     organization_name: String,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct CreateSignInRequest {
     email: String,
@@ -35,20 +37,23 @@ pub struct CreateSignInRequest {
 
 #[derive(Debug, Serialize)]
 struct Claims {
+    user_id: Uuid, // User ID
     sub: Uuid, // User ID
     email: String,
     exp: i64, // Expiration time
     iat: i64, // Issued at
 }
 
-const JWT_SECRET: &[u8] = b"your-secret-key"; // In production, this should come from environment variables
 const TOKEN_EXPIRATION_HOURS: i64 = 120;
 
 fn generate_jwt(user_id: Uuid, email: &str) -> Result<String, jsonwebtoken::errors::Error> {
+    let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    
     let now = Utc::now();
     let expires_at = now + Duration::hours(TOKEN_EXPIRATION_HOURS);
 
     let claims = Claims {
+        user_id,
         sub: user_id,
         email: email.to_string(),
         exp: expires_at.timestamp(),
@@ -58,7 +63,7 @@ fn generate_jwt(user_id: Uuid, email: &str) -> Result<String, jsonwebtoken::erro
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET),
+        &EncodingKey::from_secret(secret.as_bytes()),
     )
 }
 
@@ -147,26 +152,6 @@ pub async fn create_user_and_organization(
         return ServerResponse::server_error(err, "Failed to create organization tier");
     }
 
-    // Create initial API key for the organization
-    let api_key = format!("sk_{}", Uuid::new_v4());
-    let new_api_key = api_keys::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        organization_id: Set(org_id),
-        name: Set("Default API Key".to_string()),
-        key: Set(api_key),
-        key_type: Set(ApiKeyType::ReadWrite),
-        created_by_user_id: Set(user_id),
-        last_used_at: Set(None),
-        expires_at: Set(None),
-        created_at: Set(now),
-        updated_at: Set(now),
-    };
-
-    if let Err(err) = ApiKeys::insert(new_api_key).exec(&txn).await {
-        let _ = txn.rollback().await;
-        return ServerResponse::server_error(err, "Failed to create API key");
-    }
-
     // Generate JWT token
     let token = match generate_jwt(user_id, &email) {
         Ok(token) => token,
@@ -185,6 +170,7 @@ pub async fn create_user_and_organization(
 
     let response = CreateUserResponse {
         id: user_id,
+        organization_id: org_id,
         email,
         token,
     };
@@ -199,7 +185,6 @@ pub async fn sign_in(
 
     let db = &state.db.connection;
     let email = payload.email;
-    let password_hash = hash_password_and_salt(&payload.password).unwrap();
 
     match Users::find()
         .filter(users::Column::Email.eq(&email))
@@ -217,6 +202,7 @@ pub async fn sign_in(
                 };
                 ServerResponse::ok(CreateUserResponse {
                     id: user.id,
+                    organization_id: Uuid::new_v4(), // todo fix this
                     email,
                     token,
                 })

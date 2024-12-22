@@ -4,6 +4,7 @@ mod router;
 mod state;
 mod entities;
 mod utils;
+mod middleware;
 
 use config::{AppConfig, Database, RedisConfig, RedisStore};
 use router::api_router;

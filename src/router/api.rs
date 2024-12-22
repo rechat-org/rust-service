@@ -23,6 +23,9 @@ pub fn api_router() -> Router<AppState> {
                 .route("/organization_accounts/create", post(handlers::create_user_and_organization))
                 .route("/organization_accounts/sign-in", post(handlers::sign_in))
                 .route("/organizations/generate-api-key", post(handlers::sign_in))
+                .route("/organizations/:organization_id/keys", get(handlers::get_api_keys))
+                .route("/organizations/:organization_id/keys/count", get(handlers::get_api_key_count))
+                .route("/organizations/:organization_id/keys", post(handlers::create_api_key))
             
             ,
         )
