@@ -1,6 +1,6 @@
-use crate::entities::{api_keys, organization_members};
 use crate::entities::prelude::{ApiKeys, OrganizationMembers, Users};
-use crate::entities::sea_orm_active_enums::ApiKeyType;
+use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole};
+use crate::entities::{api_keys, organization_members, users};
 use crate::middleware::{ApiKeyManager, AuthorizedOrganizationUser};
 use crate::state::AppState;
 use crate::utils::{hash_password_and_salt, ServerResponse};
@@ -9,8 +9,17 @@ use axum::response::IntoResponse;
 use axum::Json;
 use chrono::Utc;
 use sea_orm::*;
+use sea_orm::prelude::DateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Debug, Serialize, FromQueryResult)]
+pub struct OrgUserResponse {
+    id: Uuid,
+    email: String,
+    role: OrganizationRole,
+    created_at: DateTime,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateApiKeyRequest {
@@ -23,6 +32,13 @@ pub struct CreateApiKeyResponse {
     id: Uuid,
     name: String,
     key: String,
+    key_type: ApiKeyType,
+    created_at: chrono::DateTime<Utc>,
+}
+#[derive(Debug, Serialize)]
+pub struct GetApiKeysResponse {
+    id: Uuid,
+    name: String,
     key_type: ApiKeyType,
     created_at: chrono::DateTime<Utc>,
 }
@@ -39,7 +55,17 @@ pub async fn get_api_keys(
         .all(db)
         .await
     {
-        Ok(count) => ServerResponse::ok(count),
+        Ok(api_keys) => ServerResponse::ok({
+            api_keys
+                .into_iter()
+                .map(|key| GetApiKeysResponse {
+                    id: key.id,
+                    name: key.name,
+                    key_type: key.key_type,
+                    created_at: key.created_at.and_utc(),
+                })
+                .collect::<Vec<GetApiKeysResponse>>()
+        }),
         Err(err) => ServerResponse::server_error(err, "Failed to get keys"),
     }
 }
@@ -68,7 +94,7 @@ pub async fn create_api_key(
     let db = &state.db.connection;
     let now = Utc::now().naive_utc();
     let auth_user = auth.0;
-    
+
     // Generate a unique API key
     let api_key = format!("sk_{}", Uuid::new_v4());
     let hashed_api_key = hash_password_and_salt(&api_key).unwrap();
@@ -102,6 +128,36 @@ pub async fn create_api_key(
     }
 }
 
+pub async fn delete_api_key(
+    State(state): State<AppState>,
+    Path((organization_id, key_id)): Path<(Uuid, Uuid)>, // Extract both IDs
+    auth: ApiKeyManager,
+) -> impl IntoResponse {
+    let db = &state.db.connection;
+    let auth_user = auth.0;
+
+    // Verifying organization_id matches the authenticated user's org
+    if organization_id != auth_user.organization_id {
+        return ServerResponse::forbidden("Not authorized to access this organization");
+    }
+
+    // First checking if the key exists and belongs to the organization
+    let key = match ApiKeys::find_by_id(key_id)
+        .filter(api_keys::Column::OrganizationId.eq(organization_id))
+        .one(db)
+        .await
+    {
+        Ok(Some(key)) => key,
+        Ok(None) => return ServerResponse::not_found("API key not found"),
+        Err(err) => return ServerResponse::server_error(err, "Failed to find API key"),
+    };
+
+    // Delete the key
+    match ApiKeys::delete_by_id(key.id).exec(db).await {
+        Ok(_) => ServerResponse::ok(()),
+        Err(err) => ServerResponse::server_error(err, "Failed to delete API key"),
+    }
+}
 
 pub async fn get_users_in_org(
     State(state): State<AppState>,
@@ -109,12 +165,24 @@ pub async fn get_users_in_org(
 ) -> impl IntoResponse {
     let db = &state.db.connection;
 
-    match Users::find()
-        .inner_join(OrganizationMembers)
-        .filter(organization_members::Column::OrganizationId.eq(auth.organization_id))
+    let users = Users::find()
+        .select_only()
+        .column(users::Column::Id)
+        .column(users::Column::Email)
+        .column(users::Column::CreatedAt)
+        .column(organization_members::Column::Role)
+        .join(
+            JoinType::InnerJoin,
+            users::Relation::OrganizationMembers.def()
+        )
+        .filter(
+            organization_members::Column::OrganizationId.eq(auth.organization_id)
+        )
+        .into_model::<OrgUserResponse>()
         .all(db)
-        .await
-    {
+        .await;
+
+    match users {
         Ok(users) => ServerResponse::ok(users),
         Err(err) => ServerResponse::server_error(err, "Failed to fetch organization users"),
     }
@@ -136,5 +204,4 @@ pub async fn get_users_in_org_count(
         Ok(users) => ServerResponse::ok(users),
         Err(err) => ServerResponse::server_error(err, "Failed to fetch org users count"),
     }
-
 }

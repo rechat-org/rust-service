@@ -49,9 +49,15 @@ impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
         println!("@@@@@@auth: {:?}", user);
 
         // Get the organization_id from the path
-        let Path(organization_id) = Path::<Uuid>::from_request_parts(parts, state)
-            .await
-            .map_err(|_| AuthError::InvalidToken("Invalid organization ID".to_string()))?;
+        let organization_id = parts
+            .uri
+            .path()
+            .split('/')
+            .find(|segment| {
+                Uuid::parse_str(segment).is_ok()
+            })
+            .and_then(|id| Uuid::parse_str(id).ok())
+            .ok_or(AuthError::InvalidToken("Invalid organization ID".to_string()))?;
 
         // Verify user has access to this organization
         let member = OrganizationMembers::find()

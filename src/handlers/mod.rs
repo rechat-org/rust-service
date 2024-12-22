@@ -27,4 +27,5 @@ pub use organizations::get_users_in_org;
 pub use organizations::get_users_in_org_count;
 pub use organizations::get_api_key_count;
 pub use organizations::get_api_keys;
+pub use organizations::delete_api_key;
 pub use organizations::create_api_key;
