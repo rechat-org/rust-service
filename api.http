@@ -74,6 +74,11 @@ GET {{baseUrl}}/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys
 Content-Type: application/json
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
 
+### GET users count
+GET {{baseUrl}}/api/organization_accounts/users
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+
 ### GET the api keys count
 # curl -X GET
 #  'http://localhost:3000/api/organizations/095889fc-e73c-43ef-909f-041400d61d64/keys'

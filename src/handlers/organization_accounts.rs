@@ -2,7 +2,10 @@ use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole, Organi
 use crate::entities::{
     api_keys, organization_members, organization_tiers, organizations, prelude::*, users,
 };
+use crate::middleware::AuthorizedOrganizationUser;
+use crate::state::AppState;
 use crate::utils::ServerResponse;
+use crate::utils::{hash_password_and_salt, verify_password};
 use axum::Json;
 use axum::{extract::State, response::IntoResponse};
 use chrono::{Duration, Utc};
@@ -10,9 +13,6 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::state::AppState;
-use crate::utils::{hash_password_and_salt, verify_password};
 
 #[derive(Debug, Serialize)]
 pub struct CreateUserResponse {
@@ -37,8 +37,9 @@ pub struct CreateSignInRequest {
 
 #[derive(Debug, Serialize)]
 struct Claims {
-    user_id: Uuid, // User ID
-    sub: Uuid, // User ID
+    organization_id: Uuid, // org ID that the user belongs to
+    user_id: Uuid,         // User ID
+    sub: Uuid,             // User ID
     email: String,
     exp: i64, // Expiration time
     iat: i64, // Issued at
@@ -46,14 +47,52 @@ struct Claims {
 
 const TOKEN_EXPIRATION_HOURS: i64 = 120;
 
-fn generate_jwt(user_id: Uuid, email: &str) -> Result<String, jsonwebtoken::errors::Error> {
+// Add this structure to hold user context
+#[derive(Debug, Clone)]
+pub struct UserContext {
+    pub user_id: Uuid,
+    pub organization_id: Uuid,
+    pub email: String,
+    pub role: OrganizationRole,
+}
+
+// Helper function to get user context
+pub async fn get_user_context(
+    db: &DatabaseConnection,
+    user_id: Uuid,
+) -> Result<UserContext, DbErr> {
+    // Find user and their organization in one query using joins
+    let user_with_org = Users::find_by_id(user_id)
+        .find_also_related(OrganizationMembers)
+        .one(db)
+        .await?;
+
+    match user_with_org {
+        Some((user, Some(org_member))) => Ok(UserContext {
+            user_id: user.id,
+            organization_id: org_member.organization_id,
+            email: user.email,
+            role: org_member.role,
+        }),
+        _ => Err(DbErr::RecordNotFound(
+            "User or organization not found".to_string(),
+        )),
+    }
+}
+
+fn generate_jwt(
+    user_id: Uuid,
+    organization_id: Uuid,
+    email: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
     let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-    
+
     let now = Utc::now();
     let expires_at = now + Duration::hours(TOKEN_EXPIRATION_HOURS);
 
     let claims = Claims {
         user_id,
+        organization_id,
         sub: user_id,
         email: email.to_string(),
         exp: expires_at.timestamp(),
@@ -153,7 +192,7 @@ pub async fn create_user_and_organization(
     }
 
     // Generate JWT token
-    let token = match generate_jwt(user_id, &email) {
+    let token = match generate_jwt(user_id, org_id.clone(), &email) {
         Ok(token) => token,
         Err(err) => {
             let _ = txn.rollback().await;
@@ -181,35 +220,42 @@ pub async fn sign_in(
     State(state): State<AppState>,
     Json(payload): Json<CreateSignInRequest>,
 ) -> impl IntoResponse {
-    tracing::info!("executes: create_user");
-
     let db = &state.db.connection;
-    let email = payload.email;
 
-    match Users::find()
-        .filter(users::Column::Email.eq(&email))
+    // First find the user by email
+    let user = match Users::find()
+        .filter(users::Column::Email.eq(&payload.email))
         .one(db)
         .await
     {
-        Ok(None) => ServerResponse::bad_request("Wrong credentials"),
-        Ok(Some(user)) => match verify_password(&payload.password, &user.password_hash) {
-            Ok(true) => {
-                let token = match generate_jwt(user.id, &email) {
-                    Ok(token) => token,
-                    Err(err) => {
-                        return ServerResponse::server_error(err, "Failed to generate JWT token");
-                    }
-                };
-                ServerResponse::ok(CreateUserResponse {
-                    id: user.id,
-                    organization_id: Uuid::new_v4(), // todo fix this
-                    email,
-                    token,
-                })
-            }
-            Ok(false) => ServerResponse::bad_request("Wrong credentials"),
-            Err(err) => ServerResponse::server_error(err, "Failed to verify password"),
-        },
-        Err(err) => ServerResponse::server_error(err, "Failed to check if user exists"),
+        Ok(Some(user)) => user,
+        Ok(None) => return ServerResponse::bad_request("Wrong credentials"),
+        Err(err) => return ServerResponse::server_error(err, "Failed to check if user exists"),
+    };
+
+    // Verify password
+    match verify_password(&payload.password, &user.password_hash)
+    {
+        Ok(_) => {}
+        Err(_) => return ServerResponse::bad_request("Wrong credentials"),
     }
+
+    // Get user context
+    let context = match get_user_context(db, user.id).await {
+        Ok(context) => context,
+        Err(err) => return ServerResponse::server_error(err, "Failed to get user context"),
+    };
+
+    // Generate JWT with context info
+    let token = match generate_jwt(context.user_id, context.organization_id, &context.email) {
+        Ok(token) => token,
+        Err(err) => return ServerResponse::server_error(err, "Failed to generate JWT token"),
+    };
+
+    ServerResponse::ok(CreateUserResponse {
+        id: context.user_id,
+        organization_id: context.organization_id,
+        email: context.email,
+        token,
+    })
 }

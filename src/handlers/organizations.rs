@@ -1,5 +1,5 @@
-use crate::entities::api_keys;
-use crate::entities::prelude::ApiKeys;
+use crate::entities::{api_keys, organization_members};
+use crate::entities::prelude::{ApiKeys, OrganizationMembers, Users};
 use crate::entities::sea_orm_active_enums::ApiKeyType;
 use crate::middleware::{ApiKeyManager, AuthorizedOrganizationUser};
 use crate::state::AppState;
@@ -100,4 +100,41 @@ pub async fn create_api_key(
         }
         Err(err) => ServerResponse::server_error(err, "Failed to create API key"),
     }
+}
+
+
+pub async fn get_users_in_org(
+    State(state): State<AppState>,
+    auth: AuthorizedOrganizationUser,
+) -> impl IntoResponse {
+    let db = &state.db.connection;
+
+    match Users::find()
+        .inner_join(OrganizationMembers)
+        .filter(organization_members::Column::OrganizationId.eq(auth.organization_id))
+        .all(db)
+        .await
+    {
+        Ok(users) => ServerResponse::ok(users),
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch organization users"),
+    }
+}
+
+pub async fn get_users_in_org_count(
+    State(state): State<AppState>,
+    auth: AuthorizedOrganizationUser,
+) -> impl IntoResponse {
+    tracing::info!("executes: get_users_in_organization_count");
+
+    let db = &state.db.connection;
+    match Users::find()
+        .inner_join(OrganizationMembers)
+        .filter(organization_members::Column::OrganizationId.eq(auth.organization_id))
+        .count(db)
+        .await
+    {
+        Ok(users) => ServerResponse::ok(users),
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch org users count"),
+    }
+
 }
