@@ -1,92 +1,107 @@
 @baseUrl = {{baseUrl}}
+@orgId = eb1e44e7-ff61-4d5e-bf1e-d8a0cac01753
+@authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiJlYjFlNDRlNy1mZjYxLTRkNWUtYmYxZS1kOGEwY2FjMDE3NTMiLCJ1c2VyX2lkIjoiOTJhMmFmN2YtMDFiZi00ZGUyLWJkN2EtNjVkNjdkNTM4N2U2Iiwic3ViIjoiOTJhMmFmN2YtMDFiZi00ZGUyLWJkN2EtNjVkNjdkNTM4N2U2IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK2F1dGhAZ21haWwuY29tIiwiZXhwIjoxNzM1NTUyMzMwLCJpYXQiOjE3MzUxMjAzMzB9.gqnee7-zA12i83ta93xFno3Eqfjt0Me_J9p-TdnlviA
+@apiKey = sk_28b83d06-0ca1-4c19-bdcb-9c315d67079c
 
-### POST create participant with name
-POST {{baseUrl}}/api/participants
-Content-Type: application/json
+### Base Routes
+GET {{baseUrl}}/health
+###
+GET {{baseUrl}}/ws/chat/:room_id
 
-{
-  "name": "yo-nemae"
-}
-
-
-### POST create channel with name
-POST {{baseUrl}}/api/channels
-Content-Type: application/json
-
-{
-  "name": "general"
-}
-
-### GET channel by id
-GET {{baseUrl}}/api/channels/efdd57bd-c852-43a0-8ddd-0c2894e50c05
-Accept: application/json
-
-### GET all channgels
-GET {{baseUrl}}/api/channels
-Accept: application/json
-
-### GET messages by channel id
-GET {{baseUrl}}/api/messages/efdd57bd-c852-43a0-8ddd-0c2894e50c05
-Accept: application/json
-
-### POST a new message
-POST {{baseUrl}}/api/messages
-Content-Type: application/json
-
-{
-  "channel_name": "public",
-  "participant_id": "9ee50c4f-095b-4d71-bb8c-9d5ad2688b7f",
-  "content": "hello"
-}
-
-### Create user
-### POST a new message
+### Auth Routes
 POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+test13@gmail.com",
-  "password": "paschalidi.chris+test13@gmail.com",
-  "organization_name": "no1"
+   "email": "paschalidi.chris+auth@gmail.com",
+   "password": "paschalidi.chris+auth@gmail.com",
+   "organization_name": "Test Org"
 }
 
-### POST a sing in
-POST {{baseUrl}}/api/organization_accounts/sign_in
+###
+POST {{baseUrl}}/api/organization_accounts/sign-in
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+test1@gmail.com",
-  "password": "paschalidi.chris+orgz22@gmail.com"
+   "email": "paschalidi.chris+auth@gmail.com",
+   "password": "paschalidi.chris+auth@gmail.com"
 }
 
-### POST create new key
-POST {{baseUrl}}/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys
+### Organization Routes - Participants
+POST {{baseUrl}}/api/organizations/{{orgId}}/participants
+X-API-Key: {{apiKey}}
 Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
 
 {
-    "name": "key1",
-    "key_type": "ReadWrite"
+  "name": "John Doe"
 }
 
-### GET all keys
-GET {{baseUrl}}/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys
-Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/participants/count
+Authorization: Bearer {{authToken}}
 
-### GET users count
-GET {{baseUrl}}/api/organizations/6d80330d-1be9-4d7e-93f7-2b636f9fb92a/users
-Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiI2ZDgwMzMwZC0xYmU5LTRkN2UtOTNmNy0yYjYzNmY5ZmI5MmEiLCJ1c2VyX2lkIjoiODFmNTVkNWYtNGJkNC00MGFlLWI5NWQtMTg2ZTk3MDNjMWE1Iiwic3ViIjoiODFmNTVkNWYtNGJkNC00MGFlLWI5NWQtMTg2ZTk3MDNjMWE1IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK2FwaWtleTFAZ21haWwuY29tIiwiZXhwIjoxNzM1MzIwOTc4LCJpYXQiOjE3MzQ4ODg5Nzh9.imcHPtqEWy-l1AjVRORQ68UXrqysd7aSapPkaHbin_o
+### Organization Routes - Channels
+GET {{baseUrl}}/api/organizations/{{orgId}}/channels
+X-API-Key: {{apiKey}}
 
-### GET the api keys count
-# curl -X GET
-#  'http://localhost:3000/api/organizations/095889fc-e73c-43ef-909f-041400d61d64/keys'
-#  -H 'Content-Type: application/json'
-#  -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2NWMwNTFjZC03OTFjLTQ5ZjMtYjU3ZS1kN2Y3ODIyNGVjN2QiLCJlbWFpbCI6InBhc2NoYWxpZGkuY2hyaXMrdGVzdDJAZ21haWwuY29tIiwiZXhwIjoxNzM1MzAxMjE3LCJpYXQiOjE3MzQ4NjkyMTd9.YmJde1ti1_IY5d6kvezybxTxW5RZbN6DtkwYt-BECjk'
-GET http://localhost:3001/api/organizations/06c67dcc-6377-4e4e-9188-8bbf16c36b32/keys/count
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwic3ViIjoiY2Q3MjlmYzAtOTc4Ny00YzM2LWE5YmYtNmY1YTg2NTdiZGIyIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3Rlc3Q1QGdtYWlsLmNvbSIsImV4cCI6MTczNTMxNzE3MywiaWF0IjoxNzM0ODg1MTczfQ.aepT-W1W5vFRX9YDxMqRb07d3o7aZRtq18XovJV208g
+### create a channel
+POST {{baseUrl}}/api/organizations/{{orgId}}/channels
+X-API-Key: {{apiKey}}
 Content-Type: application/json
 
+{
+  "name": "secret"
+}
 
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/channels/:channel_id
+Authorization: Bearer {{authToken}}
 
+### Organization Routes - Messages
+GET {{baseUrl}}/api/organizations/{{orgId}}/messages/:channel_id
+X-API-Key: {{apiKey}}
+
+###
+POST {{baseUrl}}/api/organizations/{{orgId}}/messages
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "channel_name": "general",
+  "participant_id": "e5f18559-5801-4a8f-96f9-6226316e2748",
+  "content": "Hello world"
+}
+
+### Organization Routes - Users
+GET {{baseUrl}}/api/organizations/{{orgId}}/users
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/users/count
+Authorization: Bearer {{authToken}}
+
+### Organization Routes - API Keys
+POST {{baseUrl}}/api/organizations/{{orgId}}/generate-api-key
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/keys
+Authorization: Bearer {{authToken}}
+
+###
+DELETE {{baseUrl}}/api/organizations/{{orgId}}/keys/:key_id
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/keys/count
+Authorization: Bearer {{authToken}}
+
+###
+POST {{baseUrl}}/api/organizations/{{orgId}}/keys
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "API Key 1",
+  "key_type": "ReadWrite"
+}
