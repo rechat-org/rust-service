@@ -23,7 +23,7 @@ jobs:
             --build-arg REDIS_URL="${{ secrets.REDIS_URL }}" \
             --build-arg JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             --build-arg STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}" \
-            --build-arg STRIPE_SECRET_KEY="${{ secrets.STRIPE_EVENT_NAME }}" \
+            --build-arg STRIPE_EVENT_NAME="${{ secrets.STRIPE_EVENT_NAME }}" \
             --build-arg STRIPE_SECRET_KEY="${{ secrets.STRIPE_PRICE_ID }}" \
             -t $REGISTRY/$IMAGE_NAME:${GITHUB_SHA::7} .
 
@@ -51,7 +51,7 @@ jobs:
             --set "envVars.REDIS_URL=${{ secrets.REDIS_URL }}" \
             --set "envVars.JWT_SECRET=${{ secrets.JWT_SECRET }}" \
             --set "envVars.STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" \
-            --set "envVars.STRIPE_SECRET_KEY=${{ secrets.STRIPE_EVENT_NAME }}" \
+            --set "envVars.STRIPE_EVENT_NAME=${{ secrets.STRIPE_EVENT_NAME }}" \
             --set "envVars.STRIPE_SECRET_KEY=${{ secrets.STRIPE_PRICE_ID }}" \
             --wait --timeout 10m \
             --debug
