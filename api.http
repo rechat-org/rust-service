@@ -50,7 +50,7 @@ X-API-Key: {{apiKey}}
 Content-Type: application/json
 
 {
-  "name": "demo"
+  "name": "uk"
 }
 
 ###
@@ -58,6 +58,7 @@ GET {{baseUrl}}/api/organizations/{{orgId}}/channels/982aa74a-259b-42c1-b4b5-06b
 X-API-Key: {{apiKey}}
 
 ### Organization Routes - Messages
+##########################################
 GET {{baseUrl}}/api/organizations/{{orgId}}/messages/982aa74a-259b-42c1-b4b5-06b0ba1d3972
 X-API-Key: {{apiKey}}
 

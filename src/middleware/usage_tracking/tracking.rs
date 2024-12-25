@@ -40,9 +40,7 @@ impl FromRequestParts<AppState> for UsageTracker {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let Path((org_id, _)): Path<(Uuid, Uuid)> = Path::from_request_parts(parts, state)
-            .await
-            .map_err(|_| AuthError::MissingOrgId)?;
+        let org_id = extract_organization_id(parts, state).await?;
 
         if let Err(e) = track_api_usage(state, &org_id).await {
             tracing::error!("Usage tracking failed: {}", e);

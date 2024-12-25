@@ -26,7 +26,7 @@ pub struct CreateMessageRequest {
 pub async fn create_message(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
-    // _: UsageTracker,
+    _: UsageTracker,
     Path((org_id)): Path<Uuid>,
     Json(payload): Json<CreateMessageRequest>,
 ) -> impl IntoResponse {
@@ -69,7 +69,7 @@ pub async fn create_message(
 pub async fn get_messages_by_channel_id(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
-    // _: UsageTracker,
+    _: UsageTracker,
     Path((org_id, channel_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;

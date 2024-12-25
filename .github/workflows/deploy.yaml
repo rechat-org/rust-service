@@ -22,6 +22,7 @@ jobs:
             --build-arg DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --build-arg REDIS_URL="${{ secrets.REDIS_URL }}" \
             --build-arg JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --build-arg STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}" \
             -t $REGISTRY/$IMAGE_NAME:${GITHUB_SHA::7} .
 
       - name: Install doctl
@@ -47,5 +48,6 @@ jobs:
             --set "envVars.DATABASE_URL=${{ secrets.DATABASE_URL }}" \
             --set "envVars.REDIS_URL=${{ secrets.REDIS_URL }}" \
             --set "envVars.JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --set "envVars.STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" \
             --wait --timeout 10m \
             --debug
