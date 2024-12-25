@@ -74,9 +74,19 @@ pub(crate) fn extract_api_key(parts: &Parts) -> Result<String, AuthError> {
         .map_err(|_| AuthError::InvalidToken("Invalid header value".into()))
 }
 
-pub(crate) async fn extract_organization_id_from_path(parts: &mut Parts, state: &AppState) -> Result<Uuid, AuthError> {
-    let Path(organization_id): Path<Uuid> = Path::from_request_parts(parts, state)
-        .await
-        .map_err(|_| AuthError::MissingOrgId)?;
-    Ok(organization_id)
+pub(crate) async fn extract_organization_id(
+    parts: &mut Parts,
+    state: &AppState,
+) -> Result<Uuid, AuthError> {
+    // Try standard organization path first
+    if let Ok(Path(org_path)) = Path::<(Uuid,)>::from_request_parts(parts, state).await {
+        return Ok(org_path.0);
+    }
+
+    // Try nested organization path next
+    if let Ok(Path(nested_path)) = Path::<(Uuid, Uuid)>::from_request_parts(parts, state).await {
+        return Ok(nested_path.0);
+    }
+
+    Err(AuthError::OrgNotFound)
 }

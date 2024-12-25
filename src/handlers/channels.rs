@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::entities::prelude::Channels;
-use crate::middleware::usage_tracking::ApiKeyAuth;
+use crate::middleware::usage_tracking::ApiKeyAuthorizer;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -26,14 +26,15 @@ pub struct CreateChannelResponse {
 
 pub async fn create_channel(
     State(state): State<AppState>,
-    auth: ApiKeyAuth,
+    _: ApiKeyAuthorizer,
+    Path(organization_id): Path<Uuid>,
     Json(payload): Json<CreateChannelRequest>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
 
     match Channels::find()
         .filter(channels::Column::Name.eq(&payload.name))
-        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(channels::Column::OrganizationId.eq(organization_id))
         .one(db)
         .await
     {
@@ -47,7 +48,7 @@ pub async fn create_channel(
         name: Set(payload.name.clone()),
         created_at: Set(chrono::Utc::now().naive_utc()),
         updated_at: Set(chrono::Utc::now().naive_utc()),
-        organization_id: Set(auth.organization_id),
+        organization_id: Set(organization_id),
     };
 
     match Channels::insert(new_channel).exec(db).await {
@@ -61,20 +62,13 @@ pub async fn create_channel(
 
 pub async fn get_channel_by_id(
     state: State<AppState>,
-    auth: ApiKeyAuth,
-    Path(channel_id): Path<String>,
+    _: ApiKeyAuthorizer,
+    Path((organization_id, channel_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
 
-    let channel_id = match Uuid::parse_str(&channel_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return ServerResponse::bad_request("Invalid channel ID");
-        }
-    };
-
     match Channels::find_by_id(channel_id)
-        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(channels::Column::OrganizationId.eq(organization_id))
         .one(db)
         .await
     {
@@ -90,9 +84,13 @@ pub async fn get_channel_by_id(
     }
 }
 
-pub async fn get_channels(State(state): State<AppState>, auth: ApiKeyAuth) -> impl IntoResponse {
+pub async fn get_channels(
+    State(state): State<AppState>,
+    _: ApiKeyAuthorizer,
+    Path((organization_id)): Path<Uuid>,
+) -> impl IntoResponse {
     match Channels::find()
-        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(channels::Column::OrganizationId.eq(organization_id))
         .order_by_desc(channels::Column::CreatedAt)
         .all(&state.db.connection)
         .await

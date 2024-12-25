@@ -1,34 +1,29 @@
 use crate::entities::sea_orm_active_enums::ApiKeyType;
 use crate::middleware::usage_tracking::helpers::{
-    extract_api_key, extract_organization_id_from_path, find_and_validate_key, track_api_usage,
+    extract_api_key, extract_organization_id, find_and_validate_key, track_api_usage,
 };
 use crate::{middleware::error::AuthError, state::AppState};
 use axum::extract::Path;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use uuid::Uuid;
 #[derive(Debug, Clone)]
-pub struct ApiKeyAuth {
-    pub api_key: String,
-    pub organization_id: Uuid,
+pub struct ApiKeyAuthorizer {
     pub key_type: ApiKeyType,
 }
 
 #[async_trait]
-impl FromRequestParts<AppState> for ApiKeyAuth {
+impl FromRequestParts<AppState> for ApiKeyAuthorizer {
     type Rejection = AuthError;
 
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        let org_id = extract_organization_id(parts, state).await?;
         let api_key = extract_api_key(parts)?;
-        let organization_id = extract_organization_id_from_path(parts, state).await?;
-        
-        let key = find_and_validate_key(&api_key, &organization_id, &state.db.connection).await?;
+        let key = find_and_validate_key(&api_key, &org_id, &state.db.connection).await?;
 
         Ok(Self {
-            api_key,
-            organization_id: key.organization_id,
             key_type: key.key_type,
         })
     }
@@ -45,9 +40,11 @@ impl FromRequestParts<AppState> for UsageTracker {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let organization_id = extract_organization_id_from_path(parts, state).await?;
+        let Path((org_id, _)): Path<(Uuid, Uuid)> = Path::from_request_parts(parts, state)
+            .await
+            .map_err(|_| AuthError::MissingOrgId)?;
 
-        if let Err(e) = track_api_usage(state, &organization_id).await {
+        if let Err(e) = track_api_usage(state, &org_id).await {
             tracing::error!("Usage tracking failed: {}", e);
         }
 

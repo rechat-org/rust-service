@@ -6,6 +6,8 @@ use thiserror::Error;
 pub enum AuthError {
     #[error("Organization ID is missing")]
     MissingOrgId,
+    #[error("Organization not found")]
+    OrgNotFound,
     #[error("Invalid token: {0}")]
     InvalidToken(String),
     #[error("Missing authentication token")]
@@ -21,6 +23,7 @@ pub enum AuthError {
 impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
         match self {
+            AuthError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
             AuthError::MissingOrgId => ServerResponse::unauthorized("Organization ID is missing"),
             AuthError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
             AuthError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),

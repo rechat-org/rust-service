@@ -50,7 +50,7 @@ X-API-Key: {{apiKey}}
 Content-Type: application/json
 
 {
-  "name": "secret"
+  "name": "demo"
 }
 
 ###
@@ -58,7 +58,7 @@ GET {{baseUrl}}/api/organizations/{{orgId}}/channels/:channel_id
 Authorization: Bearer {{authToken}}
 
 ### Organization Routes - Messages
-GET {{baseUrl}}/api/organizations/{{orgId}}/messages/:channel_id
+GET {{baseUrl}}/api/organizations/{{orgId}}/messages/982aa74a-259b-42c1-b4b5-06b0ba1d3972
 X-API-Key: {{apiKey}}
 
 ###

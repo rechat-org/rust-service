@@ -1,5 +1,5 @@
 use crate::entities::{channels, messages, prelude::*};
-use crate::middleware::usage_tracking::{ApiKeyAuth, UsageTracker};
+use crate::middleware::usage_tracking::{ApiKeyAuthorizer, UsageTracker};
 use crate::state::AppState;
 use crate::utils::ServerResponse;
 use axum::{extract::Path, Json};
@@ -25,15 +25,16 @@ pub struct CreateMessageRequest {
 
 pub async fn create_message(
     State(state): State<AppState>,
-    auth: ApiKeyAuth,
-    _: UsageTracker,
+    _: ApiKeyAuthorizer,
+    // _: UsageTracker,
+    Path((org_id)): Path<Uuid>,
     Json(payload): Json<CreateMessageRequest>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
 
     let channel = match Channels::find()
         .filter(channels::Column::Name.eq(&payload.channel_name))
-        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(channels::Column::OrganizationId.eq(org_id))
         .one(db)
         .await
     {
@@ -67,20 +68,24 @@ pub async fn create_message(
 
 pub async fn get_messages_by_channel_id(
     State(state): State<AppState>,
-    auth: ApiKeyAuth,
-    _: UsageTracker,
-    Path(channel_id): Path<String>,
+    _: ApiKeyAuthorizer,
+    // _: UsageTracker,
+    Path((org_id, channel_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
         Err(_) => return ServerResponse::bad_request("Invalid channel ID"),
     };
+    let org_id = match Uuid::parse_str(&org_id) {
+        Ok(id) => id,
+        Err(_) => return ServerResponse::bad_request("Invalid organization ID"),
+    };
 
     // First verify channel belongs to organization
     let channel = match Channels::find()
         .filter(channels::Column::Id.eq(channel_id))
-        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(channels::Column::OrganizationId.eq(org_id))
         .one(db)
         .await
     {
