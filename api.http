@@ -54,8 +54,8 @@ Content-Type: application/json
 }
 
 ###
-GET {{baseUrl}}/api/organizations/{{orgId}}/channels/:channel_id
-Authorization: Bearer {{authToken}}
+GET {{baseUrl}}/api/organizations/{{orgId}}/channels/982aa74a-259b-42c1-b4b5-06b0ba1d3972
+X-API-Key: {{apiKey}}
 
 ### Organization Routes - Messages
 GET {{baseUrl}}/api/organizations/{{orgId}}/messages/982aa74a-259b-42c1-b4b5-06b0ba1d3972
