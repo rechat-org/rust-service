@@ -1,5 +1,6 @@
 use crate::entities::{channels, messages, prelude::*};
-use crate::middleware::usage_tracking::{ApiKeyAuthorizer, UsageTracker};
+use crate::middleware::usage_tracker::{UsageTracker};
+use crate::middleware::api_key_authorizer::{ApiKeyAuthorizer};
 use crate::state::AppState;
 use crate::utils::ServerResponse;
 use axum::{extract::Path, Json};

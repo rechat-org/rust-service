@@ -8,10 +8,10 @@ use axum::{
 };
 
 use crate::entities::prelude::Channels;
-use crate::middleware::usage_tracking::ApiKeyAuthorizer;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::middleware::api_key_authorizer::ApiKeyAuthorizer;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateChannelRequest {
@@ -87,7 +87,7 @@ pub async fn get_channel_by_id(
 pub async fn get_channels(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
-    Path((organization_id)): Path<Uuid>,
+    Path(organization_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match Channels::find()
         .filter(channels::Column::OrganizationId.eq(organization_id))

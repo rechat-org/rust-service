@@ -9,6 +9,7 @@ use axum::{
 };
 use sea_orm::*;
 use uuid::Uuid;
+use crate::middleware::helpers::extract_organization_id;
 
 #[derive(Debug, Clone)]
 pub struct AuthorizedOrganizationUser {
@@ -42,19 +43,8 @@ impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        // First get the authenticated user
         let user = AuthUser::from_request_parts(parts, state).await?;
-
-        // Get the organization_id from the path
-        let organization_id = parts
-            .uri
-            .path()
-            .split('/')
-            .find(|segment| {
-                Uuid::parse_str(segment).is_ok()
-            })
-            .and_then(|id| Uuid::parse_str(id).ok())
-            .ok_or(AuthError::InvalidToken("Invalid organization ID".to_string()))?;
+        let organization_id = extract_organization_id(parts, state).await?;
 
         // Verify user has access to this organization
         let member = OrganizationMembers::find()

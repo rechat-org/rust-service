@@ -1,7 +1,8 @@
 @baseUrl = {{baseUrl}}
-@orgId = eb1e44e7-ff61-4d5e-bf1e-d8a0cac01753
-@authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiJlYjFlNDRlNy1mZjYxLTRkNWUtYmYxZS1kOGEwY2FjMDE3NTMiLCJ1c2VyX2lkIjoiOTJhMmFmN2YtMDFiZi00ZGUyLWJkN2EtNjVkNjdkNTM4N2U2Iiwic3ViIjoiOTJhMmFmN2YtMDFiZi00ZGUyLWJkN2EtNjVkNjdkNTM4N2U2IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK2F1dGhAZ21haWwuY29tIiwiZXhwIjoxNzM1NTUyMzMwLCJpYXQiOjE3MzUxMjAzMzB9.gqnee7-zA12i83ta93xFno3Eqfjt0Me_J9p-TdnlviA
-@apiKey = sk_28b83d06-0ca1-4c19-bdcb-9c315d67079c
+@orgId = 1d444045-e2c7-4f28-b4f2-1d42c514dc69
+@authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiIxZDQ0NDA0NS1lMmM3LTRmMjgtYjRmMi0xZDQyYzUxNGRjNjkiLCJ1c2VyX2lkIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3Iiwic3ViIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3RpbnlAZ21haWwuY29tIiwiZXhwIjoxNzM1NTczMzgwLCJpYXQiOjE3MzUxNDEzODB9.UBFgjdywN5B-r3jtEECA9yCWNny9e8vqeZfVK-IwtiY
+@apiKey = sk_bb6b14d1-5230-4829-9652-b4c2babf6c07
+@participantId = af47181a-0bb4-4b50-9c80-517685b66cd1
 
 ### Base Routes
 GET {{baseUrl}}/health
@@ -20,9 +21,9 @@ POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-  "email": "paschalidi.chris+auth@gmail.com",
-  "password": "paschalidi.chris+auth@gmail.com",
-  "organization_name": "Test Org"
+  "email": "paschalidi.chris+tiny@gmail.com",
+  "password": "paschalidi.chris+tiny@gmail.com",
+  "organization_name": "Tiny is here"
 }
 
 ###
@@ -60,8 +61,6 @@ Authorization: Bearer {{authToken}}
 ##########################################
 ##########################################
 ##########################################
-GET {{baseUrl}}/api/organizations/{{orgId}}/channels
-X-API-Key: {{apiKey}}
 
 ### create a channel
 POST {{baseUrl}}/api/organizations/{{orgId}}/channels
@@ -69,11 +68,15 @@ X-API-Key: {{apiKey}}
 Content-Type: application/json
 
 {
-  "name": "uk"
+  "name": "demo"
 }
 
 ###
-GET {{baseUrl}}/api/organizations/{{orgId}}/channels/982aa74a-259b-42c1-b4b5-06b0ba1d3972
+GET {{baseUrl}}/api/organizations/{{orgId}}/channels
+X-API-Key: {{apiKey}}
+
+###
+GET {{baseUrl}}/api/organizations/{{orgId}}/channels/47055bef-1e1f-41f9-9f9b-454cdb138b69
 X-API-Key: {{apiKey}}
 
 ##########################################
@@ -92,8 +95,8 @@ X-API-Key: {{apiKey}}
 Content-Type: application/json
 
 {
-  "channel_name": "general",
-  "participant_id": "e5f18559-5801-4a8f-96f9-6226316e2748",
+  "channel_name": "demo",
+  "participant_id": "af47181a-0bb4-4b50-9c80-517685b66cd1",
   "content": "Hello world"
 }
 
@@ -118,9 +121,16 @@ Authorization: Bearer {{authToken}}
 ##########################################
 ##########################################
 ##########################################
-POST {{baseUrl}}/api/organizations/{{orgId}}/generate-api-key
-Authorization: Bearer {{authToken}}
 
+### Create API key
+POST {{baseUrl}}/api/organizations/{{orgId}}/keys
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "API Key 1",
+  "key_type": "ReadWrite"
+}
 ###
 GET {{baseUrl}}/api/organizations/{{orgId}}/keys
 Authorization: Bearer {{authToken}}
@@ -133,12 +143,3 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl}}/api/organizations/{{orgId}}/keys/count
 Authorization: Bearer {{authToken}}
 
-###
-POST {{baseUrl}}/api/organizations/{{orgId}}/keys
-Authorization: Bearer {{authToken}}
-Content-Type: application/json
-
-{
-  "name": "API Key 1",
-  "key_type": "ReadWrite"
-}

@@ -28,7 +28,6 @@ pub fn api_router() -> Router<AppState> {
                         // admin routes they all need
                         .route("/users", get(handlers::get_users_in_org))
                         .route("/users/count", get(handlers::get_users_in_org_count))
-                        .route("/generate-api-key", post(handlers::create_api_key))
                         .route("/keys", get(handlers::get_api_keys))
                         .route("/keys/:key_id", delete(handlers::delete_api_key))
                         .route("/keys/count", get(handlers::get_api_key_count))
