@@ -1,12 +1,12 @@
-use crate::entities::{channel, messages, prelude::*};
+use crate::entities::{channels, messages, prelude::*};
+use crate::middleware::usage_tracking::{ApiKeyAuth, UsageTracker};
+use crate::state::AppState;
 use crate::utils::ServerResponse;
 use axum::{extract::Path, Json};
 use axum::{extract::State, response::IntoResponse};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::state::AppState;
 
 #[derive(Debug, Serialize)]
 pub struct CreateMessageResponse {
@@ -25,30 +25,27 @@ pub struct CreateMessageRequest {
 
 pub async fn create_message(
     State(state): State<AppState>,
+    auth: ApiKeyAuth,
+    _: UsageTracker,
     Json(payload): Json<CreateMessageRequest>,
 ) -> impl IntoResponse {
-    tracing::info!("executes: create_participant");
-
     let db = &state.db.connection;
 
-    let content = payload.content;
-    let participant_id = payload.participant_id;
-    let channel_name = payload.channel_name;
-
-    let channel = match Channel::find()
-        .filter(channel::Column::Name.eq(channel_name))
+    let channel = match Channels::find()
+        .filter(channels::Column::Name.eq(&payload.channel_name))
+        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
         .one(db)
         .await
     {
         Ok(Some(channel)) => channel,
-        Ok(None) => return ServerResponse::bad_request("Channel not found"),
-        Err(err) => return ServerResponse::server_error(err, "Failed to check if channel exists"),
+        Ok(None) => return ServerResponse::bad_request("Channel not found in this organization"),
+        Err(err) => return ServerResponse::server_error(err, "Failed to check channel"),
     };
 
     let new_message = messages::ActiveModel {
         id: Set(Uuid::new_v4()),
-        content: Set(content.clone()),
-        participant_id: Set(participant_id),
+        content: Set(payload.content.clone()),
+        participant_id: Set(payload.participant_id),
         channel_id: Set(channel.id),
         created_at: Set(chrono::Utc::now().naive_utc()),
         updated_at: Set(chrono::Utc::now().naive_utc()),
@@ -58,8 +55,8 @@ pub async fn create_message(
         Ok(message) => {
             let response = CreateMessageResponse {
                 id: message.last_insert_id,
-                content,
-                participant_id,
+                content: payload.content,
+                participant_id: payload.participant_id,
                 channel_id: channel.id,
             };
             ServerResponse::created(response)
@@ -70,19 +67,30 @@ pub async fn create_message(
 
 pub async fn get_messages_by_channel_id(
     State(state): State<AppState>,
+    auth: ApiKeyAuth,
+    _: UsageTracker,
     Path(channel_id): Path<String>,
 ) -> impl IntoResponse {
-    tracing::info!("executes: create_participant");
-
     let db = &state.db.connection;
-
     let channel_id = match Uuid::parse_str(&channel_id) {
         Ok(id) => id,
         Err(_) => return ServerResponse::bad_request("Invalid channel ID"),
     };
 
+    // First verify channel belongs to organization
+    let channel = match Channels::find()
+        .filter(channels::Column::Id.eq(channel_id))
+        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .one(db)
+        .await
+    {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return ServerResponse::forbidden("Channel not found in this organization"),
+        Err(err) => return ServerResponse::server_error(err, "Failed to verify channel"),
+    };
+
     match Messages::find()
-        .filter(messages::Column::ChannelId.eq(channel_id))
+        .filter(messages::Column::ChannelId.eq(channel.id))
         .order_by_asc(messages::Column::CreatedAt)
         .all(db)
         .await

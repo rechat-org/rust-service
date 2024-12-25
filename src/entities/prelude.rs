@@ -2,8 +2,8 @@
 
 pub use super::api_key_usage::Entity as ApiKeyUsage;
 pub use super::api_keys::Entity as ApiKeys;
-pub use super::channel::Entity as Channel;
 pub use super::channel_participant::Entity as ChannelParticipant;
+pub use super::channels::Entity as Channels;
 pub use super::messages::Entity as Messages;
 pub use super::organization_members::Entity as OrganizationMembers;
 pub use super::organization_tiers::Entity as OrganizationTiers;

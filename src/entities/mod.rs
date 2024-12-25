@@ -4,8 +4,8 @@ pub mod prelude;
 
 pub mod api_key_usage;
 pub mod api_keys;
-pub mod channel;
 pub mod channel_participant;
+pub mod channels;
 pub mod messages;
 pub mod organization_members;
 pub mod organization_tiers;

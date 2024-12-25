@@ -1,7 +1,6 @@
 use crate::entities::prelude::{ApiKeys, OrganizationMembers, Users};
 use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole};
 use crate::entities::{api_keys, organization_members, users};
-use crate::middleware::{ApiKeyManager, AuthorizedOrganizationUser};
 use crate::state::AppState;
 use crate::utils::{hash_password_and_salt, ServerResponse};
 use axum::extract::{Path, State};
@@ -12,6 +11,7 @@ use sea_orm::*;
 use sea_orm::prelude::DateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::middleware::authorization::{ApiKeyManager, AuthorizedOrganizationUser};
 
 #[derive(Debug, Serialize, FromQueryResult)]
 pub struct OrgUserResponse {
@@ -97,7 +97,10 @@ pub async fn create_api_key(
 
     // Generate a unique API key
     let api_key = format!("sk_{}", Uuid::new_v4());
-    let hashed_api_key = hash_password_and_salt(&api_key).unwrap();
+    let hashed_api_key = match hash_password_and_salt(&api_key) {
+        Ok(hashed) => hashed,
+        Err(err) => return ServerResponse::server_error(err, "Failed to hash API key"),
+    };
 
     // Create new API key
     let new_api_key = api_keys::ActiveModel {

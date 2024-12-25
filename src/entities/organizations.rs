@@ -11,12 +11,16 @@ pub struct Model {
     pub name: String,
     pub created_at: DateTime,
     pub updated_at: DateTime,
+    pub stripe_customer_id: Option<String>,
+    pub stripe_subscription_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::api_keys::Entity")]
     ApiKeys,
+    #[sea_orm(has_many = "super::channels::Entity")]
+    Channels,
     #[sea_orm(has_many = "super::organization_members::Entity")]
     OrganizationMembers,
     #[sea_orm(has_one = "super::organization_tiers::Entity")]
@@ -26,6 +30,12 @@ pub enum Relation {
 impl Related<super::api_keys::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ApiKeys.def()
+    }
+}
+
+impl Related<super::channels::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Channels.def()
     }
 }
 

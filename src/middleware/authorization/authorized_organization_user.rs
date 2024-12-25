@@ -1,15 +1,14 @@
 use crate::entities::{organization_members, prelude::*, sea_orm_active_enums::OrganizationRole};
-use crate::middleware::auth::AuthUser;
+use crate::middleware::authorization::auth::AuthUser;
 use crate::middleware::error::AuthError;
 use crate::state::AppState;
 use axum::{
     async_trait,
-    extract::{FromRequestParts, Path},
+    extract::{FromRequestParts},
     http::request::Parts,
 };
 use sea_orm::*;
 use uuid::Uuid;
-use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct AuthorizedOrganizationUser {
@@ -44,9 +43,7 @@ impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         // First get the authenticated user
-        println!("@@@@@@PARTS: {:?}", parts);
         let user = AuthUser::from_request_parts(parts, state).await?;
-        println!("@@@@@@auth: {:?}", user);
 
         // Get the organization_id from the path
         let organization_id = parts

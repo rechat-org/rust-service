@@ -1,8 +1,7 @@
-use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole, OrganizationTier};
+use crate::entities::sea_orm_active_enums::{OrganizationRole, OrganizationTier};
 use crate::entities::{
-    api_keys, organization_members, organization_tiers, organizations, prelude::*, users,
+    organization_members, organization_tiers, organizations, prelude::*, users,
 };
-use crate::middleware::AuthorizedOrganizationUser;
 use crate::state::AppState;
 use crate::utils::ServerResponse;
 use crate::utils::{hash_password_and_salt, verify_password};
@@ -113,8 +112,13 @@ pub async fn create_user_and_organization(
     tracing::info!("executes: create_user");
 
     let db = &state.db.connection;
+    let stripe = &state.stripe;
     let email = payload.email;
-    let password_hash = hash_password_and_salt(&payload.password).unwrap();
+    let organization_name = payload.organization_name;
+    let password_hash = match hash_password_and_salt(&payload.password) {
+        Ok(hash) => hash,
+        Err(err) => return ServerResponse::server_error(err, "Failed to hash password"),
+    };
 
     // Start a transaction
     let txn = match db.begin().await {
@@ -137,12 +141,25 @@ pub async fn create_user_and_organization(
     let org_id = Uuid::new_v4();
     let now = Utc::now().naive_utc();
 
+    let (customer_id, subscription_id) = match stripe
+        .create_customer_with_subscription(&email, &organization_name)
+        .await
+    {
+        Ok(ids) => ids,
+        Err(err) => {
+            let _ = txn.rollback().await;
+            return ServerResponse::server_error(err, "Failed to create Stripe customer");
+        }
+    };
+
     // Create organization
     let new_org = organizations::ActiveModel {
         id: Set(org_id),
-        name: Set(payload.organization_name),
+        name: Set(organization_name),
         created_at: Set(now),
         updated_at: Set(now),
+        stripe_customer_id: Set(Some(customer_id)),
+        stripe_subscription_id: Set(Some(subscription_id)),
     };
 
     if let Err(err) = Organizations::insert(new_org).exec(&txn).await {
@@ -234,8 +251,7 @@ pub async fn sign_in(
     };
 
     // Verify password
-    match verify_password(&payload.password, &user.password_hash)
-    {
+    match verify_password(&payload.password, &user.password_hash) {
         Ok(_) => {}
         Err(_) => return ServerResponse::bad_request("Wrong credentials"),
     }

@@ -1,4 +1,3 @@
-use crate::middleware::error::AuthError;
 use axum::{
     async_trait,
     extract::FromRequestParts,
@@ -7,6 +6,7 @@ use axum::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::middleware::error::AuthError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
