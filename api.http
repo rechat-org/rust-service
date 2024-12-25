@@ -5,17 +5,19 @@
 
 ### Base Routes
 GET {{baseUrl}}/health
+
 ###
 GET {{baseUrl}}/ws/chat/:room_id
 
 ### Auth Routes
+##########################################
 POST {{baseUrl}}/api/organization_accounts/create
 Content-Type: application/json
 
 {
-   "email": "paschalidi.chris+auth@gmail.com",
-   "password": "paschalidi.chris+auth@gmail.com",
-   "organization_name": "Test Org"
+  "email": "paschalidi.chris+auth@gmail.com",
+  "password": "paschalidi.chris+auth@gmail.com",
+  "organization_name": "Test Org"
 }
 
 ###
@@ -23,11 +25,17 @@ POST {{baseUrl}}/api/organization_accounts/sign-in
 Content-Type: application/json
 
 {
-   "email": "paschalidi.chris+auth@gmail.com",
-   "password": "paschalidi.chris+auth@gmail.com"
+  "email": "paschalidi.chris+auth@gmail.com",
+  "password": "paschalidi.chris+auth@gmail.com"
 }
 
+##########################################
+##########################################
+##########################################
 ### Organization Routes - Participants
+##########################################
+##########################################
+##########################################
 POST {{baseUrl}}/api/organizations/{{orgId}}/participants
 X-API-Key: {{apiKey}}
 Content-Type: application/json
@@ -40,7 +48,13 @@ Content-Type: application/json
 GET {{baseUrl}}/api/organizations/{{orgId}}/participants/count
 Authorization: Bearer {{authToken}}
 
+##########################################
+##########################################
+##########################################
 ### Organization Routes - Channels
+##########################################
+##########################################
+##########################################
 GET {{baseUrl}}/api/organizations/{{orgId}}/channels
 X-API-Key: {{apiKey}}
 
@@ -57,7 +71,12 @@ Content-Type: application/json
 GET {{baseUrl}}/api/organizations/{{orgId}}/channels/982aa74a-259b-42c1-b4b5-06b0ba1d3972
 X-API-Key: {{apiKey}}
 
+##########################################
+##########################################
+##########################################
 ### Organization Routes - Messages
+##########################################
+##########################################
 ##########################################
 GET {{baseUrl}}/api/organizations/{{orgId}}/messages/982aa74a-259b-42c1-b4b5-06b0ba1d3972
 X-API-Key: {{apiKey}}
@@ -73,7 +92,13 @@ Content-Type: application/json
   "content": "Hello world"
 }
 
-### Organization Routes - Users
+##########################################
+##########################################
+##########################################
+### Admin Routes - Users
+##########################################
+##########################################
+##########################################
 GET {{baseUrl}}/api/organizations/{{orgId}}/users
 Authorization: Bearer {{authToken}}
 
@@ -81,7 +106,13 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl}}/api/organizations/{{orgId}}/users/count
 Authorization: Bearer {{authToken}}
 
-### Organization Routes - API Keys
+##########################################
+##########################################
+##########################################
+### Admin Routes - API Keys
+##########################################
+##########################################
+##########################################
 POST {{baseUrl}}/api/organizations/{{orgId}}/generate-api-key
 Authorization: Bearer {{authToken}}
 
