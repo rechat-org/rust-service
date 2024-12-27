@@ -47,16 +47,16 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
     };
 
     // If no stripe customer id, early return success
-    let Some(stripe_customer_id) = org.stripe_customer_id else {
+    let Some(stripe_subscription_id) = org.stripe_subscription_id else {
         return Ok(());
     };
 
     println!(
         "Reporting usage to Stripe for stripe_customer_id {}",
-        stripe_customer_id
+        stripe_subscription_id
     );
     // Report usage to Stripe, but don't fail if reporting fails
-    if let Err(e) = state.stripe.report_api_usage(&stripe_customer_id).await {
+    if let Err(e) = state.stripe.report_api_usage(&stripe_subscription_id).await {
         tracing::error!("Failed to report usage to Stripe: {}", e);
     }
 

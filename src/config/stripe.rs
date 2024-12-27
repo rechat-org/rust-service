@@ -94,29 +94,30 @@ impl StripeClient {
 
     pub async fn report_api_usage(
         &self,
-        customer_id: &str,
+        subscription_item_id: &str, // Changed from customer_id to subscription_item_id
     ) -> Result<(), StripeClientError> {
-        let event_name =
-            std::env::var("STRIPE_EVENT_NAME").expect("Missing STRIPE_EVENT_NAME in env");
+        println!(
+            "@@@Reporting usage to Stripe for subscription_item_id {}",
+            subscription_item_id
+        );
 
-        println!("@@@Reporting usage to Stripe for stripe_customer_id {}", customer_id);
-        let request_body = MeterEventRequest {
-            event_name,
-            identifier: Uuid::new_v4(),
-            timestamp: Utc::now().to_rfc3339(),
-            payload: MeterEventPayload {
-                stripe_customer_id: customer_id.to_string(),
-            },
-        };
+        let request_body = serde_json::json!({
+            "action": "increment",
+            "quantity": 1,
+            "timestamp": Utc::now().timestamp()  // Stripe expects Unix timestamp
+        });
 
         let secret_key =
             std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
 
         let http_client = HttpClient::new();
         let resp = http_client
-            .post("https://api.stripe.com/v2/billing/meter_events")
-            .header("Stripe-Version", "2024-12-18.acacia")
-            .basic_auth(&self.secret_key, Some(secret_key))
+            .post(&format!(
+                "https://api.stripe.com/v1/subscription_items/{}/usage_records",
+                subscription_item_id
+            ))
+            .header("Authorization", format!("Bearer {}", secret_key))
+            .header("Content-Type", "application/x-www-form-urlencoded")
             .json(&request_body)
             .send()
             .await?;
@@ -124,14 +125,16 @@ impl StripeClient {
         if !resp.status().is_success() {
             let error_body = resp.text().await?;
             tracing::error!(
-                "Failed to create meter event for sub item, body: {}",
+                "Failed to create usage record for subscription item {}, body: {}",
+                subscription_item_id,
                 error_body
             );
-            return Err(StripeClientError::InvalidRequestError(error_body));
+            return Ok(());
         }
 
         tracing::info!(
-            "Successfully created meter event for count 1",
+            "Successfully created usage record for subscription item {}",
+            subscription_item_id
         );
         Ok(())
     }
