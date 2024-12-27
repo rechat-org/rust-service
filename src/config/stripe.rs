@@ -94,40 +94,63 @@ impl StripeClient {
 
     pub async fn report_api_usage(
         &self,
-        subscription_item_id: &str, // Changed from customer_id to subscription_item_id
+        subscription_item_id: &str,
     ) -> Result<(), StripeClientError> {
-        println!(
-            "@@@Reporting usage to Stripe for subscription_item_id {}",
+        tracing::info!(
+            "Reporting usage to Stripe for subscription_item_id {}",
             subscription_item_id
         );
+        // Handle env var error gracefully
+        let secret_key = match std::env::var("STRIPE_SECRET_KEY") {
+            Ok(key) => key,
+            Err(e) => {
+                tracing::error!("Failed to get STRIPE_SECRET_KEY: {}", e);
+                return Ok(());
+            }
+        };
 
-        let request_body = serde_json::json!({
-            "action": "increment",
-            "quantity": 1,
-            "timestamp": Utc::now().timestamp()  // Stripe expects Unix timestamp
-        });
+        let timestamp = Utc::now().timestamp().to_string();
 
-        let secret_key =
-            std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
+        let params = [
+            ("action", "increment"),
+            ("quantity", "1"),
+            ("timestamp", timestamp.as_str()),
+        ];
 
         let http_client = HttpClient::new();
-        let resp = http_client
+        let resp = match http_client
             .post(&format!(
                 "https://api.stripe.com/v1/subscription_items/{}/usage_records",
                 subscription_item_id
             ))
             .header("Authorization", format!("Bearer {}", secret_key))
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .json(&request_body)
+            .form(&params)
             .send()
-            .await?;
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                tracing::error!("Failed to send request to Stripe: {}", e);
+                return Ok(());
+            }
+        };
 
-        if !resp.status().is_success() {
-            let error_body = resp.text().await?;
+        let status = resp.status();
+        let response_text = match resp.text().await {
+            Ok(text) => text,
+            Err(e) => {
+                tracing::error!("Failed to read response text: {}", e);
+                return Ok(());
+            }
+        };
+
+        if !status.is_success() {
             tracing::error!(
-                "Failed to create usage record for subscription item {}, body: {}",
+                "Failed to create usage record for subscription item {}, status: {}, body: {}",
                 subscription_item_id,
-                error_body
+                status,
+                response_text
             );
             return Ok(());
         }
