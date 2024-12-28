@@ -1,3 +1,4 @@
+use crate::utils::generate_api_key_prefix;
 use crate::{
     entities::{api_keys, prelude::*},
     middleware::error::AuthError,
@@ -8,18 +9,16 @@ use axum::http::request::Parts;
 use bcrypt::verify;
 use chrono::Utc;
 use sea_orm::*;
+use tokio::spawn;
 use uuid::Uuid;
-use crate::utils::generate_api_key_prefix;
 
 pub(crate) async fn find_and_validate_key(
     api_key: &str,
     organization_id: &Uuid,
     db: &DatabaseConnection,
 ) -> Result<api_keys::Model, AuthError> {
-    // Generate prefix for the incoming key
     let key_prefix = generate_api_key_prefix(api_key);
 
-    // Find potential matches using the prefix and org_id
     let potential_keys = api_keys::Entity::find()
         .filter(api_keys::Column::KeyPrefix.eq(key_prefix))
         .filter(api_keys::Column::OrganizationId.eq(*organization_id))
@@ -27,30 +26,39 @@ pub(crate) async fn find_and_validate_key(
         .await
         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
-    // Find the key that matches when verified with bcrypt
     let key = potential_keys
         .into_iter()
         .find(|k| verify(api_key, &k.key).unwrap_or(false))
         .ok_or_else(|| AuthError::InvalidToken("Invalid API key".into()))?;
 
-    // Update last_used_at timestamp
-    let mut key_active: api_keys::ActiveModel = key.clone().into();
-    key_active.last_used_at = Set(Some(Utc::now().naive_utc()));
-    key_active.updated_at = Set(Utc::now().naive_utc());
-
-    let updated_key = key_active
-        .update(db)
-        .await
-        .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
-
-    // Check expiration
-    if let Some(expires_at) = updated_key.expires_at {
+    // Checks expiration first
+    if let Some(expires_at) = key.expires_at {
         if expires_at < Utc::now().naive_utc() {
             return Err(AuthError::ExpiredToken);
         }
     }
 
-    Ok(updated_key)
+    // We clone what we need for the background task
+    let db = db.clone();
+    let key_id = key.id;
+
+    // Update last_used_at in the background so that we don't block the response
+    spawn(async move {
+        let now = Utc::now().naive_utc();
+
+        let mut key_active: api_keys::ActiveModel = api_keys::ActiveModel {
+            id: Set(key_id),
+            last_used_at: Set(Some(now)),
+            updated_at: Set(now),
+            ..Default::default()
+        };
+
+        if let Err(e) = key_active.update(&db).await {
+            tracing::error!("Failed to update key last_used_at: {}", e);
+        }
+    });
+
+    Ok(key)
 }
 
 pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(), AuthError> {
@@ -59,8 +67,14 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
         .await
     {
         Ok(Some(org)) => org,
-        Ok(None) => return Err(AuthError::DatabaseError("Organization not found".into())),
-        Err(e) => return Err(AuthError::DatabaseError(e.to_string())),
+        Ok(None) => {
+            tracing::error!("Organization not found for usage tracking: {}", org_id);
+            return Ok(()); // Don't fail the request for tracking errors
+        }
+        Err(e) => {
+            tracing::error!("Database error in usage tracking: {}", e);
+            return Ok(()); // Don't fail the request for tracking errors
+        }
     };
 
     // If no stripe customer id, early return success
@@ -68,11 +82,12 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
         return Ok(());
     };
 
-    println!(
+    tracing::debug!(
         "Reporting usage to Stripe for stripe_customer_id {}",
         stripe_subscription_id
     );
-    // Report usage to Stripe, but don't fail if reporting fails
+
+    // Report usage to Stripe
     if let Err(e) = state.stripe.report_api_usage(&stripe_subscription_id).await {
         tracing::error!("Failed to report usage to Stripe: {}", e);
     }
