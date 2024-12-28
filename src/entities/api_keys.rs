@@ -19,6 +19,7 @@ pub struct Model {
     pub expires_at: Option<DateTime>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
+    pub key_prefix: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

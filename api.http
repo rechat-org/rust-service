@@ -1,7 +1,7 @@
 @baseUrl = {{baseUrl}}
-@orgId = 1d444045-e2c7-4f28-b4f2-1d42c514dc69
+@orgId = f5459909-bbff-4fda-b2a0-9dd5add18f95
 @authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiIxZDQ0NDA0NS1lMmM3LTRmMjgtYjRmMi0xZDQyYzUxNGRjNjkiLCJ1c2VyX2lkIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3Iiwic3ViIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3RpbnlAZ21haWwuY29tIiwiZXhwIjoxNzM1NTczMzgwLCJpYXQiOjE3MzUxNDEzODB9.UBFgjdywN5B-r3jtEECA9yCWNny9e8vqeZfVK-IwtiY
-@apiKey = sk_bb6b14d1-5230-4829-9652-b4c2babf6c07
+@apiKey = sk_c9cfff34-234a-41d0-8f1c-5afc725e5b61
 @participantId = af47181a-0bb4-4b50-9c80-517685b66cd1
 
 ### Base Routes
@@ -68,7 +68,7 @@ X-API-Key: {{apiKey}}
 Content-Type: application/json
 
 {
-  "name": "demo"
+  "name": "public"
 }
 
 ###

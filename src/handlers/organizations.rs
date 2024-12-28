@@ -2,7 +2,7 @@ use crate::entities::prelude::{ApiKeys, OrganizationMembers, Users};
 use crate::entities::sea_orm_active_enums::{ApiKeyType, OrganizationRole};
 use crate::entities::{api_keys, organization_members, users};
 use crate::state::AppState;
-use crate::utils::{hash_password_and_salt, ServerResponse};
+use crate::utils::{generate_api_key_prefix, hash_password_and_salt, ServerResponse};
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;
@@ -10,6 +10,7 @@ use chrono::Utc;
 use sea_orm::*;
 use sea_orm::prelude::DateTime;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use uuid::Uuid;
 use crate::middleware::authorization::{ApiKeyManager, AuthorizedOrganizationUser};
 
@@ -86,6 +87,7 @@ pub async fn get_api_key_count(
     }
 }
 
+
 pub async fn create_api_key(
     State(state): State<AppState>,
     auth: ApiKeyManager,
@@ -97,6 +99,11 @@ pub async fn create_api_key(
 
     // Generate a unique API key
     let api_key = format!("sk_{}", Uuid::new_v4());
+
+    // Generate the key prefix
+    let key_prefix = generate_api_key_prefix(&api_key);
+
+    // Hash the API key
     let hashed_api_key = match hash_password_and_salt(&api_key) {
         Ok(hashed) => hashed,
         Err(err) => return ServerResponse::server_error(err, "Failed to hash API key"),
@@ -108,6 +115,7 @@ pub async fn create_api_key(
         organization_id: Set(auth_user.organization_id),
         name: Set(payload.name),
         key: Set(hashed_api_key),
+        key_prefix: Set(key_prefix), 
         key_type: Set(payload.key_type),
         created_by_user_id: Set(auth_user.user.user_id),
         last_used_at: Set(None),
@@ -121,7 +129,7 @@ pub async fn create_api_key(
             let response = CreateApiKeyResponse {
                 id: api_key_model.id,
                 name: api_key_model.name,
-                key: api_key,
+                key: api_key,  // Uppon creation we want to return the unhashed key to the user
                 key_type: api_key_model.key_type,
                 created_at: api_key_model.created_at.and_utc(),
             };

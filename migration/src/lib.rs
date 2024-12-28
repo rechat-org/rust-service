@@ -12,6 +12,7 @@ mod m20241222_094252_corrects_timezone_type;
 mod m20241224_092916_stripe_int_the_mix;
 mod m20241224_142812_channel_belongs_to_org;
 mod m20241224_225808_channel_name_to_plural;
+mod m20241228_173102_better_api_key_lookups;
 
 pub struct Migrator;
 
@@ -31,6 +32,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241224_092916_stripe_int_the_mix::Migration),
             Box::new(m20241224_142812_channel_belongs_to_org::Migration),
             Box::new(m20241224_225808_channel_name_to_plural::Migration),
+            Box::new(m20241228_173102_better_api_key_lookups::Migration),
         ]
     }
 }

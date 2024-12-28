@@ -6,34 +6,51 @@ use crate::{
 use axum::extract::{FromRequestParts, Path};
 use axum::http::request::Parts;
 use bcrypt::verify;
+use chrono::Utc;
 use sea_orm::*;
 use uuid::Uuid;
+use crate::utils::generate_api_key_prefix;
 
 pub(crate) async fn find_and_validate_key(
     api_key: &str,
     organization_id: &Uuid,
     db: &DatabaseConnection,
 ) -> Result<api_keys::Model, AuthError> {
-    // Get all api keys since we can't compare hashed values directly in DB
-    let keys = ApiKeys::find()
+    // Generate prefix for the incoming key
+    let key_prefix = generate_api_key_prefix(api_key);
+
+    // Find potential matches using the prefix and org_id
+    let potential_keys = api_keys::Entity::find()
+        .filter(api_keys::Column::KeyPrefix.eq(key_prefix))
+        .filter(api_keys::Column::OrganizationId.eq(*organization_id))
         .all(db)
         .await
         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
     // Find the key that matches when verified with bcrypt
-    let key = keys
+    let key = potential_keys
         .into_iter()
-        .find(|k| k.organization_id == *organization_id && verify(api_key, &k.key).unwrap_or(false))
+        .find(|k| verify(api_key, &k.key).unwrap_or(false))
         .ok_or_else(|| AuthError::InvalidToken("Invalid API key".into()))?;
 
+    // Update last_used_at timestamp
+    let mut key_active: api_keys::ActiveModel = key.clone().into();
+    key_active.last_used_at = Set(Some(Utc::now().naive_utc()));
+    key_active.updated_at = Set(Utc::now().naive_utc());
+
+    let updated_key = key_active
+        .update(db)
+        .await
+        .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+
     // Check expiration
-    if let Some(expires_at) = key.expires_at {
-        if expires_at < chrono::Utc::now().naive_utc() {
+    if let Some(expires_at) = updated_key.expires_at {
+        if expires_at < Utc::now().naive_utc() {
             return Err(AuthError::ExpiredToken);
         }
     }
 
-    Ok(key)
+    Ok(updated_key)
 }
 
 pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(), AuthError> {
