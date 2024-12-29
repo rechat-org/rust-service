@@ -25,7 +25,6 @@ pub struct StripeClient {
     pub(crate) client: Client,
 }
 
-#[derive(Debug, Clone)]
 pub struct SubscriptionInfo {
     pub id: String,
     pub monthly_limit: i64,

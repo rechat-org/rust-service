@@ -1,6 +1,7 @@
 use crate::entities::{channels, messages, prelude::*};
-use crate::middleware::usage_tracker::{UsageTracker};
-use crate::middleware::api_key_authorizer::{ApiKeyAuthorizer};
+use crate::middleware::api_key_authorizer::ApiKeyAuthorizer;
+use crate::middleware::usage_limiter::UsageLimiter;
+use crate::middleware::usage_tracker::UsageTracker;
 use crate::state::AppState;
 use crate::utils::ServerResponse;
 use axum::{extract::Path, Json};
@@ -28,7 +29,8 @@ pub async fn create_message(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
     _: UsageTracker,
-    Path((org_id)): Path<Uuid>,
+    _: UsageLimiter,
+    Path(org_id): Path<Uuid>,
     Json(payload): Json<CreateMessageRequest>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;
@@ -70,6 +72,7 @@ pub async fn create_message(
 pub async fn get_messages_by_channel_id(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
+    _: UsageLimiter,
     Path((org_id, channel_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;

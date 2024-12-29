@@ -1,3 +1,4 @@
+use crate::middleware::error::AuthError;
 use axum::{
     async_trait,
     extract::FromRequestParts,
@@ -6,7 +7,6 @@ use axum::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::middleware::error::AuthError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -15,7 +15,7 @@ pub struct Claims {
     pub exp: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AuthUser {
     pub user_id: Uuid,
     pub email: String,
@@ -38,7 +38,7 @@ where
             .ok_or(AuthError::MissingToken)?
             .to_str()
             .map_err(|_| AuthError::InvalidToken("Invalid header value".to_string()))?;
-        
+
         // Checking if it's a bearer token and extract the token part
         let token = auth_header
             .strip_prefix("Bearer ")
@@ -60,16 +60,4 @@ where
             email: token_data.claims.email,
         })
     }
-}
-
-pub fn validate_token(token: &str) -> Result<Claims, AuthError> {
-    let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-
-    decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &Validation::default(),
-    )
-    .map(|data| data.claims)
-    .map_err(|e| AuthError::InvalidToken(e.to_string()))
 }

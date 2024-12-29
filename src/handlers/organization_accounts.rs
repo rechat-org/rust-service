@@ -46,8 +46,6 @@ struct Claims {
 
 const TOKEN_EXPIRATION_HOURS: i64 = 120;
 
-// Add this structure to hold user context
-#[derive(Debug, Clone)]
 pub struct UserContext {
     pub user_id: Uuid,
     pub organization_id: Uuid,

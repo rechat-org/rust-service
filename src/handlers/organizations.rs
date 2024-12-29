@@ -10,7 +10,6 @@ use chrono::Utc;
 use sea_orm::*;
 use sea_orm::prelude::DateTime;
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
 use uuid::Uuid;
 use crate::middleware::authorization::{ApiKeyManager, AuthorizedOrganizationUser};
 

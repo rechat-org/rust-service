@@ -101,7 +101,7 @@ async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<
 }
 
 fn calculate_seconds_until_month_end() -> i64 {
-    use chrono::{Datelike, Duration, Utc};
+    use chrono::{Datelike, Utc};
 
     let now = Utc::now();
     let next_month = if now.month() == 12 {

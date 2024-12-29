@@ -46,7 +46,7 @@ pub(crate) async fn find_and_validate_key(
     spawn(async move {
         let now = Utc::now().naive_utc();
 
-        let mut key_active: api_keys::ActiveModel = api_keys::ActiveModel {
+        let key_active: api_keys::ActiveModel = api_keys::ActiveModel {
             id: Set(key_id),
             last_used_at: Set(Some(now)),
             updated_at: Set(now),

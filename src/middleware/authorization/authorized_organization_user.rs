@@ -1,17 +1,13 @@
 use crate::entities::{organization_members, prelude::*, sea_orm_active_enums::OrganizationRole};
 use crate::middleware::authorization::auth::AuthUser;
 use crate::middleware::error::AuthError;
+use crate::middleware::helpers::extract_organization_id;
 use crate::state::AppState;
-use axum::{
-    async_trait,
-    extract::{FromRequestParts},
-    http::request::Parts,
-};
+use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use sea_orm::*;
 use uuid::Uuid;
-use crate::middleware::helpers::extract_organization_id;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AuthorizedOrganizationUser {
     pub user: AuthUser,
     pub organization_id: Uuid,
@@ -19,19 +15,11 @@ pub struct AuthorizedOrganizationUser {
 }
 
 impl AuthorizedOrganizationUser {
-    pub fn is_admin(&self) -> bool {
-        matches!(self.role, OrganizationRole::Owner | OrganizationRole::Admin)
-    }
-
     pub fn can_manage_api_keys(&self) -> bool {
         matches!(
             self.role,
             OrganizationRole::Owner | OrganizationRole::Admin | OrganizationRole::Developer
         )
-    }
-
-    pub fn is_owner(&self) -> bool {
-        matches!(self.role, OrganizationRole::Owner)
     }
 }
 

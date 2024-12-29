@@ -69,3 +69,18 @@ impl MigrationTrait for Migration {
 1. Always implement both `up` and `down` migrations
 2. Test migrations locally before pushing
 3. Make migrations idempotent when possible
+
+
+# Helm Chart usage
+
+## How to upgrade locally
+
+1. cd into the `helm` directory
+   ```
+   cd helm
+   ```
+
+2. Run the following command to upgrade the helm chart
+   ```
+   helm upgrade chat-service ./chat-service
+   ```
