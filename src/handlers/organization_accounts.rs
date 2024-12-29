@@ -197,9 +197,12 @@ pub async fn create_user_and_organization(
     // Create organization tier (Free by default)
     let new_org_tier = organization_tiers::ActiveModel {
         organization_id: Set(org_id),
-        tier: Set(OrganizationTier::Free),
         created_at: Set(now),
         updated_at: Set(now),
+        tier: Default::default(),
+        monthly_request_limit: Default::default(),
+        current_month_usage: Default::default(),
+        last_reset_at: Default::default(),
     };
 
     if let Err(err) = OrganizationTiers::insert(new_org_tier).exec(&txn).await {

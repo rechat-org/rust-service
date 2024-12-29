@@ -3,9 +3,11 @@ use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum AppError {
+pub enum MiddlewareError {
     #[error("Organization not found")]
-    OrgNotFound,
+    OrgNotFound,   
+    #[error("Not found")]
+    NotFound(String),
     #[error("Invalid token: {0}")]
     InvalidToken(String),
     #[error("Missing authentication token")]
@@ -26,19 +28,20 @@ pub enum AppError {
     UsageLimitExceeded(String),
 }
 
-impl IntoResponse for AppError {
+impl IntoResponse for MiddlewareError {
     fn into_response(self) -> Response {
         match self {
-            AppError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
-            AppError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
-            AppError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),
-            AppError::ExpiredToken => ServerResponse::unauthorized("Authentication token has expired"),
-            AppError::InsufficientPermissions => ServerResponse::forbidden("Insufficient permissions to access this resource"),
-            AppError::DatabaseError(msg) => ServerResponse::server_error(msg, "Database error occurred"),
-            AppError::CacheError(msg) => ServerResponse::server_error(msg, "Cache error occurred"),
-            AppError::StripeError(msg) => ServerResponse::server_error(msg, "Stripe error occurred"),
-            AppError::ConfigError(msg) => ServerResponse::server_error(msg, "Stripe metadata parsing error occurred"),
-            AppError::UsageLimitExceeded(msg) => ServerResponse::forbidden(msg),
+            MiddlewareError::NotFound(msg) => ServerResponse::not_found(msg),
+            MiddlewareError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
+            MiddlewareError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
+            MiddlewareError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),
+            MiddlewareError::ExpiredToken => ServerResponse::unauthorized("Authentication token has expired"),
+            MiddlewareError::InsufficientPermissions => ServerResponse::forbidden("Insufficient permissions to access this resource"),
+            MiddlewareError::DatabaseError(msg) => ServerResponse::server_error(msg, "Database error occurred"),
+            MiddlewareError::CacheError(msg) => ServerResponse::server_error(msg, "Cache error occurred"),
+            MiddlewareError::StripeError(msg) => ServerResponse::server_error(msg, "Stripe error occurred"),
+            MiddlewareError::ConfigError(msg) => ServerResponse::server_error(msg, "Stripe metadata parsing error occurred"),
+            MiddlewareError::UsageLimitExceeded(msg) => ServerResponse::forbidden(msg),
         }
     }
 }

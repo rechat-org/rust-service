@@ -15,6 +15,8 @@ mod m20241224_225808_channel_name_to_plural;
 mod m20241228_173102_better_api_key_lookups;
 mod m20241229_072649_tiers;
 mod m20241229_094545_si_for_stripe;
+mod m20241229_102530_adds_back_tier_col;
+mod m20241229_103359_adds_tier;
 
 pub struct Migrator;
 
@@ -37,6 +39,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20241228_173102_better_api_key_lookups::Migration),
             Box::new(m20241229_072649_tiers::Migration),
             Box::new(m20241229_094545_si_for_stripe::Migration),
+            Box::new(m20241229_102530_adds_back_tier_col::Migration),
+            Box::new(m20241229_103359_adds_tier::Migration),
         ]
     }
 }

@@ -18,6 +18,8 @@ pub enum StripeClientError {
     Stripe(#[from] StripeError),
     #[error("Configuration error: {0}")]
     Http(#[from] reqwest::Error),
+    #[error("JSON parsing error: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 #[derive(Clone)]
@@ -200,6 +202,81 @@ impl StripeClient {
             stripe_subscription_item_id
         );
         Ok(())
+    }
+
+    pub async fn get_subscription_usage(
+        &self,
+        stripe_subscription_item_id: &str,
+    ) -> Result<i64, StripeClientError> {
+        tracing::info!(
+            "Fetching usage from Stripe for subscription_item_id {}",
+            stripe_subscription_item_id
+        );
+
+        let secret_key = match std::env::var("STRIPE_SECRET_KEY") {
+            Ok(key) => key,
+            Err(e) => {
+                tracing::error!("Failed to get STRIPE_SECRET_KEY: {}", e);
+                return Ok(0);
+            }
+        };
+
+        let http_client = HttpClient::new();
+        let resp = match http_client
+            .get(&format!(
+                "https://api.stripe.com/v1/subscription_items/{}/usage_record_summaries",
+                stripe_subscription_item_id
+            ))
+            .header("Authorization", format!("Bearer {}", secret_key))
+            .send()
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                tracing::error!("Failed to send request to Stripe: {}", e);
+                return Ok(0);
+            }
+        };
+
+        let status = resp.status();
+        let response_text = match resp.text().await {
+            Ok(text) => text,
+            Err(e) => {
+                tracing::error!("Failed to read response text: {}", e);
+                return Ok(0);
+            }
+        };
+
+        if !status.is_success() {
+            tracing::error!(
+                "Failed to fetch usage records for subscription item {}, status: {}, body: {}",
+                stripe_subscription_item_id,
+                status,
+                response_text
+            );
+            return Ok(0);
+        }
+
+        // Parse the response to get total usage
+        let response: serde_json::Value =
+            serde_json::from_str(&response_text).map_err(StripeClientError::Json)?;
+
+        // Get the first record's total_usage (current period)
+        let total_usage = response
+            .get("data")
+            .and_then(|data| data.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|first| first.get("total_usage"))
+            .and_then(|usage| usage.as_i64())
+            .unwrap_or(0);
+
+        tracing::info!(
+            "Successfully fetched usage record for subscription item {}: {}",
+            stripe_subscription_item_id,
+            total_usage
+        );
+
+        Ok(total_usage)
     }
 }
 

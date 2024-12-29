@@ -1,6 +1,6 @@
 use crate::config::RedisStore;
 use crate::entities::prelude::Organizations;
-use crate::middleware::error::AppError;
+use crate::middleware::error::MiddlewareError;
 use crate::middleware::helpers::extract_organization_id;
 use crate::state::AppState;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
@@ -14,7 +14,7 @@ pub struct UsageLimiter;
 
 #[async_trait]
 impl FromRequestParts<AppState> for UsageLimiter {
-    type Rejection = AppError;
+    type Rejection = MiddlewareError;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -30,14 +30,14 @@ impl FromRequestParts<AppState> for UsageLimiter {
             .stripe
             .get_subscription(&org_id, &state.db.connection)
             .await
-            .map_err(|e| AppError::StripeError(e.to_string()))?;
+            .map_err(|e| MiddlewareError::StripeError(e.to_string()))?;
 
         // Extracts tier limit from subscription metadata
         let tier_limit: i64 = subscription
             .metadata
             .get("monthly_limit")
             .and_then(|l| l.parse().ok())
-            .ok_or_else(|| AppError::ConfigError("Invalid tier limit".into()))?;
+            .ok_or_else(|| MiddlewareError::ConfigError("Invalid tier limit".into()))?;
 
         // Checks if org is within limits
         if usage > tier_limit {
@@ -46,7 +46,7 @@ impl FromRequestParts<AppState> for UsageLimiter {
                 usage,
                 tier_limit
             );
-            return Err(AppError::UsageLimitExceeded(error_message));
+            return Err(MiddlewareError::UsageLimitExceeded(error_message));
         }
 
         // If approaching limit (80%), spawn background notification task
@@ -68,39 +68,57 @@ impl FromRequestParts<AppState> for UsageLimiter {
     }
 }
 
-// Helper functions
-async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<i64, AppError> {
-    let mut conn = redis
-        .client
-        .get_multiplexed_async_connection()
-        .await
-        .map_err(|e| AppError::CacheError(e.to_string()))?;
-
+async fn check_and_increment_usage(
+    redis: &RedisStore,
+    org_id: &Uuid,
+) -> Result<i64, MiddlewareError> {
     let key = format!(
         "usage:monthly:{}:{}",
         chrono::Utc::now().format("%Y-%m"),
         org_id
     );
+    println!("##Key: {}", key);
+    // Try Redis first
+    match redis.client.get_multiplexed_async_connection().await {
+        Ok(mut conn) => {
+            let new_count: i64 = conn
+                .incr(&key, 1)
+                .await
+                .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
 
-    // Increment usage counter
-    let new_count: i64 = conn
-        .incr(&key, 1)
-        .await
-        .map_err(|e| AppError::CacheError(e.to_string()))?;
+            if new_count == 1 {
+                let seconds_until_month_end = calculate_seconds_until_month_end();
+                let _: () = conn
+                    .expire(&key, seconds_until_month_end as i64)
+                    .await
+                    .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
+            }
 
-    // Set expiry if this is a new key
-    if new_count == 1 {
-        let seconds_until_month_end = calculate_seconds_until_month_end();
-        let _: () = conn
-            .expire(&key, seconds_until_month_end)
-            .await
-            .map_err(|e| AppError::CacheError(e.to_string()))?;
+            Ok(new_count)
+        }
+        Err(redis_err) => {
+            tracing::warn!("Redis error, starting fresh counter: {}", redis_err);
+
+            // Start from 1 since this request counts
+            let current_usage = 1;
+
+            // Try to update Redis with the new count
+            if let Ok(mut conn) = redis.client.get_multiplexed_async_connection().await {
+                let _: Result<(), _> = conn
+                    .set_ex(
+                        &key,
+                        current_usage,
+                        calculate_seconds_until_month_end() as usize as u64,
+                    )
+                    .await;
+            }
+
+            Ok(current_usage)
+        }
     }
-
-    Ok(new_count)
 }
 
-fn calculate_seconds_until_month_end() -> i64 {
+fn calculate_seconds_until_month_end() -> u64 {
     use chrono::{Datelike, Utc};
 
     let now = Utc::now();
@@ -134,8 +152,9 @@ fn calculate_seconds_until_month_end() -> i64 {
             .unwrap()
     };
 
-    (next_month - now).num_seconds()
+    (next_month - now).num_seconds() as u64
 }
+
 async fn notify_usage_threshold(
     state: &AppState,
     org_id: &Uuid,
@@ -151,8 +170,7 @@ async fn notify_usage_threshold(
     // Calculate percentage used
     let percentage_used = (current_usage as f64 / tier_limit as f64 * 100.0) as i32;
 
-    // Send notification (implement based on your notification system)
-    // This could be email, Slack, etc.
+    // TODO: We want to send a notification to the organization owner
     tracing::warn!(
         "Organization {} has used {}% of their monthly limit ({}/{})",
         org.name,
