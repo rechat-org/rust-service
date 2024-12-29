@@ -23,7 +23,7 @@ impl FromRequestParts<AppState> for UsageLimiter {
         let org_id = extract_organization_id(parts, state).await?;
 
         // Checks Redis cache first for usage
-        let usage = check_and_increment_usage(&state.redis, &org_id).await?;
+        let usage = check_and_increment_usage(&state, &org_id).await?;
 
         // Gets subscription info from Stripe
         let subscription = state
@@ -69,7 +69,7 @@ impl FromRequestParts<AppState> for UsageLimiter {
 }
 
 async fn check_and_increment_usage(
-    redis: &RedisStore,
+    state: &AppState,
     org_id: &Uuid,
 ) -> Result<i64, MiddlewareError> {
     let key = format!(
@@ -79,7 +79,7 @@ async fn check_and_increment_usage(
     );
     println!("##Key: {}", key);
     // Try Redis first
-    match redis.client.get_multiplexed_async_connection().await {
+    match state.redis.client.get_multiplexed_async_connection().await {
         Ok(mut conn) => {
             let new_count: i64 = conn
                 .incr(&key, 1)
@@ -97,19 +97,33 @@ async fn check_and_increment_usage(
             Ok(new_count)
         }
         Err(redis_err) => {
-            tracing::warn!("Redis error, starting fresh counter: {}", redis_err);
+            tracing::warn!("Redis error, falling back to Stripe: {}", redis_err);
 
-            // Start from 1 since this request counts
-            let current_usage = 1;
+            // Get organization to fetch subscription item ID
+            let org = Organizations::find_by_id(*org_id)
+                .one(&state.db.connection)
+                .await
+                .map_err(|e| MiddlewareError::DatabaseError(e.to_string()))?
+                .ok_or_else(|| MiddlewareError::NotFound("Organization not found".into()))?;
 
-            // Try to update Redis with the new count
-            if let Ok(mut conn) = redis.client.get_multiplexed_async_connection().await {
+            let subscription_item_id = org.stripe_subscription_item_id.ok_or_else(|| {
+                MiddlewareError::ConfigError("No subscription item ID found".into())
+            })?;
+
+            // Fetch current usage from Stripe
+            let stripe_usage = state
+                .stripe
+                .get_subscription_usage(&subscription_item_id)
+                .await
+                .map_err(|e| MiddlewareError::StripeError(e.to_string()))?;
+
+            // Add 1 for the current request
+            let current_usage = stripe_usage + 1;
+
+            // Try to update Redis with the correct count
+            if let Ok(mut conn) = state.redis.client.get_multiplexed_async_connection().await {
                 let _: Result<(), _> = conn
-                    .set_ex(
-                        &key,
-                        current_usage,
-                        calculate_seconds_until_month_end() as usize as u64,
-                    )
+                    .set_ex(&key, current_usage, calculate_seconds_until_month_end())
                     .await;
             }
 

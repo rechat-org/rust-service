@@ -9,8 +9,10 @@ use axum::http::request::Parts;
 use bcrypt::verify;
 use chrono::Utc;
 use sea_orm::*;
+use sea_orm::prelude::Expr;
 use tokio::spawn;
 use uuid::Uuid;
+use crate::entities::organization_tiers;
 
 pub(crate) async fn find_and_validate_key(
     api_key: &str,
@@ -61,7 +63,10 @@ pub(crate) async fn find_and_validate_key(
     Ok(key)
 }
 
-pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(), MiddlewareError> {
+pub(crate) async fn track_api_usage(
+    state: &AppState,
+    org_id: &Uuid,
+) -> Result<(), MiddlewareError> {
     let org = match Organizations::find_by_id(*org_id)
         .one(&state.db.connection)
         .await
@@ -69,11 +74,11 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
         Ok(Some(org)) => org,
         Ok(None) => {
             tracing::error!("Organization not found for usage tracking: {}", org_id);
-            return Ok(()); // Don't fail the request for tracking errors
+            return Ok(());
         }
         Err(e) => {
             tracing::error!("Database error in usage tracking: {}", e);
-            return Ok(()); // Don't fail the request for tracking errors
+            return Ok(());
         }
     };
 
@@ -82,14 +87,27 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
         return Ok(());
     };
 
-    tracing::debug!(
-        "Reporting usage to Stripe for stripe_subscription_item_id {}",
-        stripe_subscription_item_id
-    );
-
-    // Report usage to Stripe
-    if let Err(e) = state.stripe.report_api_usage(&stripe_subscription_item_id).await {
+    // Report to Stripe
+    if let Err(e) = state
+        .stripe
+        .report_api_usage(&stripe_subscription_item_id)
+        .await
+    {
         tracing::error!("Failed to report usage to Stripe: {}", e);
+    }
+
+    // Update organization_tiers usage
+    let update_result = OrganizationTiers::update_many()
+        .col_expr(
+            organization_tiers::Column::CurrentMonthUsage,
+            Expr::col(organization_tiers::Column::CurrentMonthUsage).add(1),
+        )
+        .filter(organization_tiers::Column::OrganizationId.eq(*org_id))
+        .exec(&state.db.connection)
+        .await;
+
+    if let Err(e) = update_result {
+        tracing::error!("Failed to update organization tier usage: {}", e);
     }
 
     Ok(())
