@@ -73,57 +73,57 @@ async fn check_and_increment_usage(
         chrono::Utc::now().format("%Y-%m"),
         org_id
     );
-    println!("##Key: {}", key);
+
     // Try Redis first
     match state.redis.client.get_multiplexed_async_connection().await {
         Ok(mut conn) => {
-            let new_count: i64 = conn
-                .incr(&key, 1)
+            // First try to get the existing value
+            let current_count: Option<i64> = conn
+                .get(&key)
                 .await
                 .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
 
-            if new_count == 1 {
-                let seconds_until_month_end = calculate_seconds_until_month_end();
-                let _: () = conn
-                    .expire(&key, seconds_until_month_end as i64)
-                    .await
-                    .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
-            }
+            match current_count {
+                Some(count) => {
+                    // Key exists, increment it
+                    let new_count: i64 = conn
+                        .incr(&key, 1)
+                        .await
+                        .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
+                    Ok(new_count)
+                }
+                None => {
+                    // Key doesn't exist, get current usage from DB
+                    let org_tier = OrganizationTiers::find_by_id(*org_id)
+                        .one(&state.db.connection)
+                        .await
+                        .map_err(|e| MiddlewareError::DatabaseError(e.to_string()))?
+                        .ok_or_else(|| {
+                            MiddlewareError::NotFound("Organization tier not found".into())
+                        })?;
 
-            Ok(new_count)
+                    let current_usage = org_tier.current_month_usage + 1;
+
+                    // Set in Redis with expiry
+                    let _: () = conn
+                        .set_ex(&key, current_usage, calculate_seconds_until_month_end())
+                        .await
+                        .map_err(|e| MiddlewareError::CacheError(e.to_string()))?;
+
+                    Ok(current_usage)
+                }
+            }
         }
         Err(redis_err) => {
-            tracing::warn!("Redis error, falling back to Stripe: {}", redis_err);
-
-            // Get organization to fetch subscription item ID
-            let org = Organizations::find_by_id(*org_id)
+            tracing::warn!("Redis error, starting fresh counter: {}", redis_err);
+            // If Redis fails, just return DB value + 1
+            let org_tier = OrganizationTiers::find_by_id(*org_id)
                 .one(&state.db.connection)
                 .await
                 .map_err(|e| MiddlewareError::DatabaseError(e.to_string()))?
-                .ok_or_else(|| MiddlewareError::NotFound("Organization not found".into()))?;
+                .ok_or_else(|| MiddlewareError::NotFound("Organization tier not found".into()))?;
 
-            let subscription_item_id = org.stripe_subscription_item_id.ok_or_else(|| {
-                MiddlewareError::ConfigError("No subscription item ID found".into())
-            })?;
-
-            // Fetch current usage from Stripe
-            let stripe_usage = state
-                .stripe
-                .get_subscription_usage(&subscription_item_id)
-                .await
-                .map_err(|e| MiddlewareError::StripeError(e.to_string()))?;
-
-            // Add 1 for the current request
-            let current_usage = stripe_usage + 1;
-
-            // Try to update Redis with the correct count
-            if let Ok(mut conn) = state.redis.client.get_multiplexed_async_connection().await {
-                let _: Result<(), _> = conn
-                    .set_ex(&key, current_usage, calculate_seconds_until_month_end())
-                    .await;
-            }
-
-            Ok(current_usage)
+            Ok(org_tier.current_month_usage + 1)
         }
     }
 }
