@@ -24,6 +24,7 @@ pub use messages::get_messages_count_for_current_month;
 pub use organization_accounts::create_user_and_organization;
 pub use organization_accounts::sign_in;
 
+pub use organizations::get_active_users;
 pub use organizations::get_users_in_org;
 pub use organizations::get_users_in_org_count;
 pub use organizations::get_api_key_count;

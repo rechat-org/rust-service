@@ -215,3 +215,11 @@ pub async fn get_users_in_org_count(
         Err(err) => ServerResponse::server_error(err, "Failed to fetch org users count"),
     }
 }
+
+pub async fn get_active_users(
+    State(state): State<AppState>,
+    _: AuthorizedOrganizationUser, // Use auth middleware
+) -> impl IntoResponse {
+    let count = *state.active_users.read().await;
+    ServerResponse::ok(count)
+}

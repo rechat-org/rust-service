@@ -116,6 +116,10 @@ GET {{baseUrl}}/api/organizations/{{orgId}}/users
 Authorization: Bearer {{authToken}}
 
 ###
+GET {{baseUrl}}/api/organizations/{{orgId}}/users/active
+Authorization: Bearer {{authToken}}
+
+###
 GET {{baseUrl}}/api/organizations/{{orgId}}/users/count
 Authorization: Bearer {{authToken}}
 

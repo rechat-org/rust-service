@@ -24,8 +24,36 @@ pub async fn chat_ws_handler(
     ws.on_upgrade(|socket| handle_socket_connection(socket, state, room_id))
 }
 
+#[derive(Debug, Serialize)]
+struct ActiveUsersUpdate {
+    type_: &'static str,
+    count: i64,
+}
+
+async fn broadcast_to_all_rooms(state: &AppState, message: &str) -> Result<(), redis::RedisError> {
+    let mut conn = state.redis.client.get_async_connection().await?;
+    conn.publish::<_, _, ()>("chat:broadcast", message).await?;
+    Ok(())
+}
+
 async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: String) {
     let (mut sender, mut receiver) = socket.split();
+
+    // Increment global active users count
+    {
+        let mut count = state.active_users.write().await;  // Now this will work
+        *count += 1;
+
+        let update = ActiveUsersUpdate {
+            type_: "active_users",
+            count: *count,
+        };
+        if let Ok(json) = serde_json::to_string(&update) {
+            if let Err(e) = broadcast_to_all_rooms(&state, &json).await {
+                error!("Failed to broadcast active users update: {}", e);
+            }
+        }
+    }
 
     // Get Redis connection
     let redis = state.redis.clone();
@@ -84,7 +112,7 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
             }
         }
     });
-   
+
     // Handle messages from Redis and send them to WebSocket
     let mut send_task = tokio::spawn(async move {
         let mut pubsub_stream = pubsub.on_message();
@@ -103,6 +131,23 @@ async fn handle_socket_connection(socket: WebSocket, state: AppState, room_id: S
     tokio::select! {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
+    }
+
+    // Decrement active users count on disconnect
+    {
+        let mut count = state.active_users.write().await; // Added .await
+        *count -= 1;
+
+        // Broadcast updated count
+        let update = ActiveUsersUpdate {
+            type_: "active_users",
+            count: *count,
+        };
+        if let Ok(json) = serde_json::to_string(&update) {
+            if let Err(e) = broadcast_to_all_rooms(&state, &json).await {
+                error!("Failed to broadcast active users update: {}", e);
+            }
+        }
     }
 
     info!("Client disconnected from room: {}", room_id);
