@@ -139,7 +139,7 @@ pub async fn create_user_and_organization(
     let org_id = Uuid::new_v4();
     let now = Utc::now().naive_utc();
 
-    let (customer_id, subscription_id) = match stripe
+    let (customer_id, subscription_id, subscription_item_id) = match stripe
         .create_customer_with_subscription(&email, &organization_name)
         .await
     {
@@ -158,6 +158,7 @@ pub async fn create_user_and_organization(
         updated_at: Set(now),
         stripe_customer_id: Set(Some(customer_id)),
         stripe_subscription_id: Set(Some(subscription_id)),
+        stripe_subscription_item_id: Set(Some(subscription_item_id)),
     };
 
     if let Err(err) = Organizations::insert(new_org).exec(&txn).await {

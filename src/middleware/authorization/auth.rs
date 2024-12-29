@@ -1,4 +1,4 @@
-use crate::middleware::error::AuthError;
+use crate::middleware::error::AppError;
 use axum::{
     async_trait,
     extract::FromRequestParts,
@@ -26,7 +26,7 @@ impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
 {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Getting headers from parts
@@ -35,14 +35,14 @@ where
         // Extracting the token from Authorization header
         let auth_header = headers
             .get(AUTHORIZATION)
-            .ok_or(AuthError::MissingToken)?
+            .ok_or(AppError::MissingToken)?
             .to_str()
-            .map_err(|_| AuthError::InvalidToken("Invalid header value".to_string()))?;
+            .map_err(|_| AppError::InvalidToken("Invalid header value".to_string()))?;
 
         // Checking if it's a bearer token and extract the token part
         let token = auth_header
             .strip_prefix("Bearer ")
-            .ok_or(AuthError::InvalidToken("Invalid token format".to_string()))?;
+            .ok_or(AppError::InvalidToken("Invalid token format".to_string()))?;
 
         // Getting the secret from environment variable
         let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
@@ -53,7 +53,7 @@ where
             &DecodingKey::from_secret(secret.as_bytes()),
             &Validation::default(),
         )
-        .map_err(|e| AuthError::InvalidToken(e.to_string()))?;
+        .map_err(|e| AppError::InvalidToken(e.to_string()))?;
 
         Ok(AuthUser {
             user_id: token_data.claims.user_id,

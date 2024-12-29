@@ -1,5 +1,5 @@
 use crate::middleware::helpers::{extract_organization_id, track_api_usage};
-use crate::{middleware::error::AuthError, state::AppState};
+use crate::{middleware::error::AppError, state::AppState};
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use tokio::spawn;
 
@@ -8,7 +8,7 @@ pub struct UsageTracker {}
 
 #[async_trait]
 impl FromRequestParts<AppState> for UsageTracker {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,

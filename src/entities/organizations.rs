@@ -13,6 +13,7 @@ pub struct Model {
     pub updated_at: DateTime,
     pub stripe_customer_id: Option<String>,
     pub stripe_subscription_id: Option<String>,
+    pub stripe_subscription_item_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

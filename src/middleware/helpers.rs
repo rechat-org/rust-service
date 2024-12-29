@@ -1,7 +1,7 @@
 use crate::utils::generate_api_key_prefix;
 use crate::{
     entities::{api_keys, prelude::*},
-    middleware::error::AuthError,
+    middleware::error::AppError,
     state::AppState,
 };
 use axum::extract::{FromRequestParts, Path};
@@ -16,7 +16,7 @@ pub(crate) async fn find_and_validate_key(
     api_key: &str,
     organization_id: &Uuid,
     db: &DatabaseConnection,
-) -> Result<api_keys::Model, AuthError> {
+) -> Result<api_keys::Model, AppError> {
     let key_prefix = generate_api_key_prefix(api_key);
 
     let potential_keys = api_keys::Entity::find()
@@ -24,17 +24,17 @@ pub(crate) async fn find_and_validate_key(
         .filter(api_keys::Column::OrganizationId.eq(*organization_id))
         .all(db)
         .await
-        .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
     let key = potential_keys
         .into_iter()
         .find(|k| verify(api_key, &k.key).unwrap_or(false))
-        .ok_or_else(|| AuthError::InvalidToken("Invalid API key".into()))?;
+        .ok_or_else(|| AppError::InvalidToken("Invalid API key".into()))?;
 
     // Checks expiration first
     if let Some(expires_at) = key.expires_at {
         if expires_at < Utc::now().naive_utc() {
-            return Err(AuthError::ExpiredToken);
+            return Err(AppError::ExpiredToken);
         }
     }
 
@@ -61,7 +61,7 @@ pub(crate) async fn find_and_validate_key(
     Ok(key)
 }
 
-pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(), AuthError> {
+pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(), AppError> {
     let org = match Organizations::find_by_id(*org_id)
         .one(&state.db.connection)
         .await
@@ -77,18 +77,18 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
         }
     };
 
-    // If no stripe customer id, early return success
-    let Some(stripe_subscription_id) = org.stripe_subscription_id else {
+    // If no stripe subscription item id, early return success
+    let Some(stripe_subscription_item_id) = org.stripe_subscription_item_id else {
         return Ok(());
     };
 
     tracing::debug!(
-        "Reporting usage to Stripe for stripe_customer_id {}",
-        stripe_subscription_id
+        "Reporting usage to Stripe for stripe_subscription_item_id {}",
+        stripe_subscription_item_id
     );
 
     // Report usage to Stripe
-    if let Err(e) = state.stripe.report_api_usage(&stripe_subscription_id).await {
+    if let Err(e) = state.stripe.report_api_usage(&stripe_subscription_item_id).await {
         tracing::error!("Failed to report usage to Stripe: {}", e);
     }
 
@@ -96,20 +96,20 @@ pub(crate) async fn track_api_usage(state: &AppState, org_id: &Uuid) -> Result<(
 }
 
 // Helper function to extract API key from headers
-pub(crate) fn extract_api_key(parts: &Parts) -> Result<String, AuthError> {
+pub(crate) fn extract_api_key(parts: &Parts) -> Result<String, AppError> {
     parts
         .headers
         .get("X-API-Key")
-        .ok_or(AuthError::MissingToken)?
+        .ok_or(AppError::MissingToken)?
         .to_str()
         .map(String::from)
-        .map_err(|_| AuthError::InvalidToken("Invalid header value".into()))
+        .map_err(|_| AppError::InvalidToken("Invalid header value".into()))
 }
 
 pub(crate) async fn extract_organization_id(
     parts: &mut Parts,
     state: &AppState,
-) -> Result<Uuid, AuthError> {
+) -> Result<Uuid, AppError> {
     // Try standard organization path first
     if let Ok(Path(org_path)) = Path::<(Uuid,)>::from_request_parts(parts, state).await {
         return Ok(org_path.0);
@@ -120,5 +120,5 @@ pub(crate) async fn extract_organization_id(
         return Ok(nested_path.0);
     }
 
-    Err(AuthError::OrgNotFound)
+    Err(AppError::OrgNotFound)
 }

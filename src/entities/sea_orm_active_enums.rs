@@ -25,13 +25,3 @@ pub enum OrganizationRole {
     #[sea_orm(string_value = "read_only")]
     ReadOnly,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "organization_tier")]
-pub enum OrganizationTier {
-    #[sea_orm(string_value = "free")]
-    Free,
-    #[sea_orm(string_value = "pro")]
-    Pro,
-    #[sea_orm(string_value = "standard")]
-    Standard,
-}

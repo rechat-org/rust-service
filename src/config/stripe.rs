@@ -47,7 +47,7 @@ impl StripeClient {
         &self,
         email: &str,
         organization_name: &str,
-    ) -> Result<(String, String), StripeError> {
+    ) -> Result<(String, String, String), StripeError> {
         // Create customer
         let customer = Customer::create(
             &self.client,
@@ -75,7 +75,11 @@ impl StripeClient {
         let subscription = Subscription::create(&self.client, params).await?;
         let subscription_item_id = subscription.items.data[0].id.clone();
 
-        Ok((customer.id.to_string(), subscription_item_id.to_string()))
+        Ok((
+            customer.id.to_string(),
+            subscription.id.to_string(),
+            subscription_item_id.to_string(),
+        ))
     }
 
     pub async fn get_subscription(
@@ -130,11 +134,11 @@ impl StripeClient {
 
     pub async fn report_api_usage(
         &self,
-        subscription_item_id: &str,
+        stripe_subscription_item_id: &str,
     ) -> Result<(), StripeClientError> {
         tracing::info!(
-            "Reporting usage to Stripe for subscription_item_id {}",
-            subscription_item_id
+            "Reporting usage to Stripe for stripe_subscription_item_id {}",
+            stripe_subscription_item_id
         );
         // Handle env var error gracefully
         let secret_key = match std::env::var("STRIPE_SECRET_KEY") {
@@ -157,7 +161,7 @@ impl StripeClient {
         let resp = match http_client
             .post(&format!(
                 "https://api.stripe.com/v1/subscription_items/{}/usage_records",
-                subscription_item_id
+                stripe_subscription_item_id
             ))
             .header("Authorization", format!("Bearer {}", secret_key))
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -184,7 +188,7 @@ impl StripeClient {
         if !status.is_success() {
             tracing::error!(
                 "Failed to create usage record for subscription item {}, status: {}, body: {}",
-                subscription_item_id,
+                stripe_subscription_item_id,
                 status,
                 response_text
             );
@@ -193,7 +197,7 @@ impl StripeClient {
 
         tracing::info!(
             "Successfully created usage record for subscription item {}",
-            subscription_item_id
+            stripe_subscription_item_id
         );
         Ok(())
     }

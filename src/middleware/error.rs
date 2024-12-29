@@ -3,7 +3,7 @@ use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum AuthError {
+pub enum AppError {
     #[error("Organization not found")]
     OrgNotFound,
     #[error("Invalid token: {0}")]
@@ -26,19 +26,19 @@ pub enum AuthError {
     UsageLimitExceeded(String),
 }
 
-impl IntoResponse for AuthError {
+impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            AuthError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
-            AuthError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
-            AuthError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),
-            AuthError::ExpiredToken => ServerResponse::unauthorized("Authentication token has expired"),
-            AuthError::InsufficientPermissions => ServerResponse::forbidden("Insufficient permissions to access this resource"),
-            AuthError::DatabaseError(msg) => ServerResponse::server_error(msg, "Database error occurred"),
-            AuthError::CacheError(msg) => ServerResponse::server_error(msg, "Cache error occurred"),
-            AuthError::StripeError(msg) => ServerResponse::server_error(msg, "Stripe error occurred"),
-            AuthError::ConfigError(msg) => ServerResponse::server_error(msg, "Stripe metadata parsing error occurred"),
-            AuthError::UsageLimitExceeded(msg) => ServerResponse::forbidden(msg),
+            AppError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
+            AppError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
+            AppError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),
+            AppError::ExpiredToken => ServerResponse::unauthorized("Authentication token has expired"),
+            AppError::InsufficientPermissions => ServerResponse::forbidden("Insufficient permissions to access this resource"),
+            AppError::DatabaseError(msg) => ServerResponse::server_error(msg, "Database error occurred"),
+            AppError::CacheError(msg) => ServerResponse::server_error(msg, "Cache error occurred"),
+            AppError::StripeError(msg) => ServerResponse::server_error(msg, "Stripe error occurred"),
+            AppError::ConfigError(msg) => ServerResponse::server_error(msg, "Stripe metadata parsing error occurred"),
+            AppError::UsageLimitExceeded(msg) => ServerResponse::forbidden(msg),
         }
     }
 }

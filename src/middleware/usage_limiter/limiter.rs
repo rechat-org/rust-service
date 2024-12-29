@@ -1,6 +1,6 @@
 use crate::config::RedisStore;
 use crate::entities::prelude::Organizations;
-use crate::middleware::error::AuthError;
+use crate::middleware::error::AppError;
 use crate::middleware::helpers::extract_organization_id;
 use crate::state::AppState;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
@@ -14,7 +14,7 @@ pub struct UsageLimiter;
 
 #[async_trait]
 impl FromRequestParts<AppState> for UsageLimiter {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -30,14 +30,14 @@ impl FromRequestParts<AppState> for UsageLimiter {
             .stripe
             .get_subscription(&org_id, &state.db.connection)
             .await
-            .map_err(|e| AuthError::StripeError(e.to_string()))?;
+            .map_err(|e| AppError::StripeError(e.to_string()))?;
 
         // Extracts tier limit from subscription metadata
         let tier_limit: i64 = subscription
             .metadata
             .get("monthly_limit")
             .and_then(|l| l.parse().ok())
-            .ok_or_else(|| AuthError::ConfigError("Invalid tier limit".into()))?;
+            .ok_or_else(|| AppError::ConfigError("Invalid tier limit".into()))?;
 
         // Checks if org is within limits
         if usage > tier_limit {
@@ -46,7 +46,7 @@ impl FromRequestParts<AppState> for UsageLimiter {
                 usage,
                 tier_limit
             );
-            return Err(AuthError::UsageLimitExceeded(error_message));
+            return Err(AppError::UsageLimitExceeded(error_message));
         }
 
         // If approaching limit (80%), spawn background notification task
@@ -69,12 +69,12 @@ impl FromRequestParts<AppState> for UsageLimiter {
 }
 
 // Helper functions
-async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<i64, AuthError> {
+async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<i64, AppError> {
     let mut conn = redis
         .client
         .get_multiplexed_async_connection()
         .await
-        .map_err(|e| AuthError::CacheError(e.to_string()))?;
+        .map_err(|e| AppError::CacheError(e.to_string()))?;
 
     let key = format!(
         "usage:monthly:{}:{}",
@@ -86,7 +86,7 @@ async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<
     let new_count: i64 = conn
         .incr(&key, 1)
         .await
-        .map_err(|e| AuthError::CacheError(e.to_string()))?;
+        .map_err(|e| AppError::CacheError(e.to_string()))?;
 
     // Set expiry if this is a new key
     if new_count == 1 {
@@ -94,7 +94,7 @@ async fn check_and_increment_usage(redis: &RedisStore, org_id: &Uuid) -> Result<
         let _: () = conn
             .expire(&key, seconds_until_month_end)
             .await
-            .map_err(|e| AuthError::CacheError(e.to_string()))?;
+            .map_err(|e| AppError::CacheError(e.to_string()))?;
     }
 
     Ok(new_count)

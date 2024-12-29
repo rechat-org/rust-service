@@ -1,6 +1,6 @@
 use crate::entities::{organization_members, prelude::*, sea_orm_active_enums::OrganizationRole};
 use crate::middleware::authorization::auth::AuthUser;
-use crate::middleware::error::AuthError;
+use crate::middleware::error::AppError;
 use crate::middleware::helpers::extract_organization_id;
 use crate::state::AppState;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
@@ -25,7 +25,7 @@ impl AuthorizedOrganizationUser {
 
 #[async_trait]
 impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -43,7 +43,7 @@ impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
             )
             .one(&state.db.connection)
             .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+            .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         match member {
             Some(member) => Ok(AuthorizedOrganizationUser {
@@ -51,7 +51,7 @@ impl FromRequestParts<AppState> for AuthorizedOrganizationUser {
                 organization_id,
                 role: member.role,
             }),
-            None => Err(AuthError::InsufficientPermissions),
+            None => Err(AppError::InsufficientPermissions),
         }
     }
 }
@@ -60,7 +60,7 @@ pub struct ApiKeyManager(pub AuthorizedOrganizationUser);
 
 #[async_trait]
 impl FromRequestParts<AppState> for ApiKeyManager {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -69,7 +69,7 @@ impl FromRequestParts<AppState> for ApiKeyManager {
         let auth_user = AuthorizedOrganizationUser::from_request_parts(parts, state).await?;
 
         if !auth_user.can_manage_api_keys() {
-            return Err(AuthError::InsufficientPermissions);
+            return Err(AppError::InsufficientPermissions);
         }
 
         Ok(Self(auth_user))

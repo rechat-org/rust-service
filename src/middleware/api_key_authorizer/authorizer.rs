@@ -2,7 +2,7 @@ use axum::async_trait;
 use axum::extract::FromRequestParts;
 use http::request::Parts;
 use crate::entities::sea_orm_active_enums::ApiKeyType;
-use crate::middleware::error::AuthError;
+use crate::middleware::error::AppError;
 use crate::middleware::helpers::{extract_api_key, extract_organization_id, find_and_validate_key};
 use crate::state::AppState;
 
@@ -13,7 +13,7 @@ pub struct ApiKeyAuthorizer {
 
 #[async_trait]
 impl FromRequestParts<AppState> for ApiKeyAuthorizer {
-    type Rejection = AuthError;
+    type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,
