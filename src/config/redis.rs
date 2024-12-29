@@ -43,7 +43,11 @@ impl RedisStore {
     /// Get current usage for an organization
     pub async fn get_usage(&self, org_id: &Uuid) -> Result<Option<i64>, RedisError> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
-        let key = format!("usage:{}", org_id);
+        let key = format!(
+            "usage:monthly:{}:{}",
+            chrono::Utc::now().format("%Y-%m"),
+            org_id
+        );
 
         let result: Option<i64> = conn.get(&key).await?;
         Ok(result)
@@ -53,7 +57,11 @@ impl RedisStore {
     /// Returns the new value after incrementing
     pub async fn increment_usage(&self, org_id: &Uuid) -> Result<i64, RedisError> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
-        let key = format!("usage:{}", org_id);
+        let key = format!(
+            "usage:monthly:{}:{}",
+            chrono::Utc::now().format("%Y-%m"),
+            org_id
+        );
 
         // Increment and reset expiry
         let new_value: i64 = conn.incr(&key, 1).await?;
@@ -68,7 +76,11 @@ impl RedisStore {
     /// Set usage for an organization with TTL until end of month
     pub async fn set_usage(&self, org_id: &Uuid, usage: i64) -> Result<(), RedisError> {
         let mut conn = self.client.get_async_connection().await?;
-        let key = format!("usage:{}", org_id);
+        let key = format!(
+            "usage:monthly:{}:{}",
+            chrono::Utc::now().format("%Y-%m"),
+            org_id
+        );
 
         // Set value with TTL until end of month
         let ttl = Self::get_ttl_until_month_end();
