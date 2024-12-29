@@ -1,6 +1,6 @@
 @baseUrl = {{baseUrl}}
 @orgId = 47d7832e-268d-495d-903c-114459d8c771
-@authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiIxZDQ0NDA0NS1lMmM3LTRmMjgtYjRmMi0xZDQyYzUxNGRjNjkiLCJ1c2VyX2lkIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3Iiwic3ViIjoiZjZkMjUyNDItOWJmMC00ZjEzLTgxMzctZTdkNTIzNjFlYjI3IiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3RpbnlAZ21haWwuY29tIiwiZXhwIjoxNzM1NTczMzgwLCJpYXQiOjE3MzUxNDEzODB9.UBFgjdywN5B-r3jtEECA9yCWNny9e8vqeZfVK-IwtiY
+@authToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJvcmdhbml6YXRpb25faWQiOiI0N2Q3ODMyZS0yNjhkLTQ5NWQtOTAzYy0xMTQ0NTlkOGM3NzEiLCJ1c2VyX2lkIjoiYTExOWM5YTMtZGE3My00Mzk2LWJiNTAtYWFjYTcyNzkzOWYwIiwic3ViIjoiYTExOWM5YTMtZGE3My00Mzk2LWJiNTAtYWFjYTcyNzkzOWYwIiwiZW1haWwiOiJwYXNjaGFsaWRpLmNocmlzK3JhdGVfbGltaXRlcnYxQGdtYWlsLmNvbSIsImV4cCI6MTczNTkzNDExOSwiaWF0IjoxNzM1NTAyMTE5fQ.CbRqj6q6CWGq51Vua9_g2O9LkigPl-dOw4svcSIZOPM
 @apiKey = sk_92fe64b8-88e1-42da-9d91-21969c91c75c
 @participantId = af47181a-0bb4-4b50-9c80-517685b66cd1
 
@@ -99,6 +99,11 @@ Content-Type: application/json
   "participant_id": "af47181a-0bb4-4b50-9c80-517685b66cd1",
   "content": "Hello world"
 }
+
+### Count
+GET {{baseUrl}}/api/organizations/{{orgId}}/messages/count
+Authorization: Bearer {{authToken}}
+
 
 ##########################################
 ##########################################

@@ -22,6 +22,7 @@ pub fn api_router() -> Router<AppState> {
                         .route("/channels", get(handlers::get_channels))
                         .route("/channels/:channel_id", get(handlers::get_channel_by_id))
                         
+                        .route("/messages/count", get(handlers::get_messages_count_for_current_month))
                         .route("/messages/:channel_id", get(handlers::get_messages_by_channel_id))
                         .route("/messages", post(handlers::create_message))
                         

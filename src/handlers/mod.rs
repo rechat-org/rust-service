@@ -19,6 +19,7 @@ pub use participants::get_participants_count;
 
 pub use messages::create_message;
 pub use messages::get_messages_by_channel_id;
+pub use messages::get_messages_count_for_current_month;
 
 pub use organization_accounts::create_user_and_organization;
 pub use organization_accounts::sign_in;

@@ -5,7 +5,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum MiddlewareError {
     #[error("Organization not found")]
-    OrgNotFound,   
+    OrgNotFound,
     #[error("Not found")]
     NotFound(String),
     #[error("Invalid token: {0}")]
@@ -34,8 +34,8 @@ impl IntoResponse for MiddlewareError {
             MiddlewareError::NotFound(msg) => ServerResponse::not_found(msg),
             MiddlewareError::OrgNotFound => ServerResponse::unauthorized("Organization not found"),
             MiddlewareError::InvalidToken(msg) => ServerResponse::unauthorized(msg),
-            MiddlewareError::MissingToken => ServerResponse::unauthorized("Authentication token is missing"),
-            MiddlewareError::ExpiredToken => ServerResponse::unauthorized("Authentication token has expired"),
+            MiddlewareError::MissingToken => ServerResponse::unauthorized("Authorization token is missing"),
+            MiddlewareError::ExpiredToken => ServerResponse::unauthorized("Authorization token has expired"),
             MiddlewareError::InsufficientPermissions => ServerResponse::forbidden("Insufficient permissions to access this resource"),
             MiddlewareError::DatabaseError(msg) => ServerResponse::server_error(msg, "Database error occurred"),
             MiddlewareError::CacheError(msg) => ServerResponse::server_error(msg, "Cache error occurred"),

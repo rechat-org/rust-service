@@ -1,5 +1,6 @@
-use crate::entities::{channels, messages, prelude::*};
+use crate::entities::{channels, messages, organization_members, prelude::*};
 use crate::middleware::api_key_authorizer::ApiKeyAuthorizer;
+use crate::middleware::authorization::AuthorizedOrganizationUser;
 use crate::middleware::usage_limiter::UsageLimiter;
 use crate::middleware::usage_tracker::UsageTracker;
 use crate::state::AppState;
@@ -9,6 +10,7 @@ use axum::{extract::State, response::IntoResponse};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use chrono::{Datelike, Timelike, Utc};
 
 #[derive(Debug, Serialize)]
 pub struct CreateMessageResponse {
@@ -16,6 +18,12 @@ pub struct CreateMessageResponse {
     content: String,
     participant_id: Uuid,
     channel_id: Uuid,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CountMessageResponse {
+    count: u32,
+    month: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,5 +124,77 @@ pub async fn get_messages_by_channel_id(
             ServerResponse::ok(messages)
         }
         Err(err) => ServerResponse::server_error(err, "Failed to fetch messages"),
+    }
+}
+
+
+pub async fn get_messages_count_for_current_month(
+    State(state): State<AppState>,
+    auth: AuthorizedOrganizationUser,
+) -> impl IntoResponse {
+    tracing::info!("executes: get_messages_count_for_current_month");
+
+    let now = Utc::now();
+    let start_of_month = Utc::now()
+        .with_day(1)
+        .unwrap()
+        .with_hour(0)
+        .unwrap()
+        .with_minute(0)
+        .unwrap()
+        .with_second(0)
+        .unwrap()
+        .with_nanosecond(0)
+        .unwrap();
+
+    let end_of_month = if now.month() == 12 {
+        Utc::now()
+            .with_year(now.year() + 1)
+            .unwrap()
+            .with_month(1)
+            .unwrap()
+            .with_day(1)
+            .unwrap()
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap()
+    } else {
+        Utc::now()
+            .with_month(now.month() + 1)
+            .unwrap()
+            .with_day(1)
+            .unwrap()
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap()
+    };
+
+    let db = &state.db.connection;
+    match Messages::find()
+        .join(JoinType::InnerJoin, messages::Relation::Channels.def())
+        .filter(channels::Column::OrganizationId.eq(auth.organization_id))
+        .filter(messages::Column::CreatedAt.gte(start_of_month))
+        .filter(messages::Column::CreatedAt.lt(end_of_month))
+        .count(db)
+        .await
+    {
+        Ok(count) => { 
+            let response = CountMessageResponse {
+                count: count as u32,
+                month: now.month() as u8,
+            };
+            ServerResponse::ok(response)
+        },
+        Err(err) => ServerResponse::server_error(err, "Failed to fetch messages count"),
     }
 }
