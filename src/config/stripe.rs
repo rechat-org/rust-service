@@ -210,20 +210,34 @@ impl StripeClient {
         Ok(())
     }
 
-    pub async fn get_subscription_usage(
-        &self,
-        stripe_subscription_item_id: &str,
-    ) -> Result<i64, StripeClientError> {
+    pub async fn get_subscription_usage(&self, db: &DatabaseConnection, org_id: &Uuid) -> i64 {
+        let org = match Organizations::find_by_id(*org_id).one(db).await {
+            Ok(Some(org)) => org,
+            Ok(None) => {
+                tracing::error!("Organization not found: {}", org_id);
+                return 0;
+            }
+            Err(e) => {
+                tracing::error!("Database error: {}", e);
+                return 0;
+            }
+        };
+
+        let Some(subscription_item_id) = org.stripe_subscription_item_id else {
+            tracing::error!("No subscription item ID found for org: {}", org_id);
+            return 0;
+        };
+
         tracing::info!(
             "Fetching usage from Stripe for subscription_item_id {}",
-            stripe_subscription_item_id
+            subscription_item_id
         );
 
         let secret_key = match std::env::var("STRIPE_SECRET_KEY") {
             Ok(key) => key,
             Err(e) => {
                 tracing::error!("Failed to get STRIPE_SECRET_KEY: {}", e);
-                return Ok(0);
+                return 0;
             }
         };
 
@@ -231,7 +245,7 @@ impl StripeClient {
         let resp = match http_client
             .get(&format!(
                 "https://api.stripe.com/v1/subscription_items/{}/usage_record_summaries",
-                stripe_subscription_item_id
+                subscription_item_id
             ))
             .header("Authorization", format!("Bearer {}", secret_key))
             .send()
@@ -240,7 +254,7 @@ impl StripeClient {
             Ok(resp) => resp,
             Err(e) => {
                 tracing::error!("Failed to send request to Stripe: {}", e);
-                return Ok(0);
+                return 0;
             }
         };
 
@@ -249,39 +263,35 @@ impl StripeClient {
             Ok(text) => text,
             Err(e) => {
                 tracing::error!("Failed to read response text: {}", e);
-                return Ok(0);
+                return 0;
             }
         };
 
         if !status.is_success() {
             tracing::error!(
-                "Failed to fetch usage records for subscription item {}, status: {}, body: {}",
-                stripe_subscription_item_id,
+                "Failed to fetch usage records, status: {}, body: {}",
                 status,
                 response_text
             );
-            return Ok(0);
+            return 0;
         }
 
-        // Parse the response to get total usage
-        let response: serde_json::Value =
-            serde_json::from_str(&response_text).map_err(StripeClientError::Json)?;
+        // Parse the response
+        let response = match serde_json::from_str::<serde_json::Value>(&response_text) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Failed to parse Stripe response: {}", e);
+                return 0;
+            }
+        };
 
-        // Get the first record's total_usage (current period)
-        let total_usage = response
+        // Get usage value
+        response
             .get("data")
             .and_then(|data| data.as_array())
             .and_then(|arr| arr.first())
             .and_then(|first| first.get("total_usage"))
             .and_then(|usage| usage.as_i64())
-            .unwrap_or(0);
-
-        tracing::info!(
-            "Successfully fetched usage record for subscription item {}: {}",
-            stripe_subscription_item_id,
-            total_usage
-        );
-
-        Ok(total_usage)
+            .unwrap_or(0)
     }
 }

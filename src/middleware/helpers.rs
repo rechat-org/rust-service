@@ -1,3 +1,4 @@
+use crate::entities::organization_tiers;
 use crate::utils::generate_api_key_prefix;
 use crate::{
     entities::{api_keys, prelude::*},
@@ -8,11 +9,10 @@ use axum::extract::{FromRequestParts, Path};
 use axum::http::request::Parts;
 use bcrypt::verify;
 use chrono::Utc;
-use sea_orm::*;
 use sea_orm::prelude::Expr;
+use sea_orm::*;
 use tokio::spawn;
 use uuid::Uuid;
-use crate::entities::organization_tiers;
 
 pub(crate) async fn find_and_validate_key(
     api_key: &str,
@@ -61,56 +61,6 @@ pub(crate) async fn find_and_validate_key(
     });
 
     Ok(key)
-}
-
-pub(crate) async fn track_api_usage(
-    state: &AppState,
-    org_id: &Uuid,
-) -> Result<(), MiddlewareError> {
-    let org = match Organizations::find_by_id(*org_id)
-        .one(&state.db.connection)
-        .await
-    {
-        Ok(Some(org)) => org,
-        Ok(None) => {
-            tracing::error!("Organization not found for usage tracking: {}", org_id);
-            return Ok(());
-        }
-        Err(e) => {
-            tracing::error!("Database error in usage tracking: {}", e);
-            return Ok(());
-        }
-    };
-
-    // If no stripe subscription item id, early return success
-    let Some(stripe_subscription_item_id) = org.stripe_subscription_item_id else {
-        return Ok(());
-    };
-
-    // Report to Stripe
-    if let Err(e) = state
-        .stripe
-        .report_api_usage(&stripe_subscription_item_id)
-        .await
-    {
-        tracing::error!("Failed to report usage to Stripe: {}", e);
-    }
-
-    // Update organization_tiers usage in db
-    let update_result = OrganizationTiers::update_many()
-        .col_expr(
-            organization_tiers::Column::CurrentMonthUsage,
-            Expr::col(organization_tiers::Column::CurrentMonthUsage).add(1),
-        )
-        .filter(organization_tiers::Column::OrganizationId.eq(*org_id))
-        .exec(&state.db.connection)
-        .await;
-
-    if let Err(e) = update_result {
-        tracing::error!("Failed to update organization tier usage: {}", e);
-    }
-
-    Ok(())
 }
 
 // Helper function to extract API key from headers
