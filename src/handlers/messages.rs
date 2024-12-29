@@ -70,7 +70,6 @@ pub async fn create_message(
 pub async fn get_messages_by_channel_id(
     State(state): State<AppState>,
     _: ApiKeyAuthorizer,
-    _: UsageTracker,
     Path((org_id, channel_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let db = &state.db.connection;

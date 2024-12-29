@@ -8,7 +8,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error, Serialize)]
 #[serde(tag = "code", content = "detail")]
-pub enum ApiError {
+pub enum GeneralError {
     #[error("Invalid request: {0}")]
     BadRequest(String),
 
@@ -32,7 +32,7 @@ pub enum ApiError {
 pub struct ApiResponse<T: Serialize> {
     pub data: Option<T>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<ApiError>,
+    pub error: Option<GeneralError>,
 }
 
 pub struct ServerResponse;
@@ -65,7 +65,7 @@ impl ServerResponse {
             StatusCode::BAD_REQUEST,
             Json(ApiResponse::<()> {
                 data: None,
-                error: Some(ApiError::BadRequest(detail.into())),
+                error: Some(GeneralError::BadRequest(detail.into())),
             }),
         )
             .into_response()
@@ -76,7 +76,7 @@ impl ServerResponse {
             StatusCode::UNAUTHORIZED,
             Json(ApiResponse::<()> {
                 data: None,
-                error: Some(ApiError::Authentication(detail.into())),
+                error: Some(GeneralError::Authentication(detail.into())),
             }),
         )
             .into_response()
@@ -87,7 +87,7 @@ impl ServerResponse {
             StatusCode::FORBIDDEN,
             Json(ApiResponse::<()> {
                 data: None,
-                error: Some(ApiError::Authorization(detail.into())),
+                error: Some(GeneralError::Authorization(detail.into())),
             }),
         )
             .into_response()
@@ -98,7 +98,7 @@ impl ServerResponse {
             StatusCode::NOT_FOUND,
             Json(ApiResponse::<()> {
                 data: None,
-                error: Some(ApiError::NotFound(detail.into())),
+                error: Some(GeneralError::NotFound(detail.into())),
             }),
         )
             .into_response()
@@ -110,7 +110,7 @@ impl ServerResponse {
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<()> {
                 data: None,
-                error: Some(ApiError::Internal(detail.into())),
+                error: Some(GeneralError::Internal(detail.into())),
             }),
         )
             .into_response()

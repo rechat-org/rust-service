@@ -1,10 +1,12 @@
+use crate::entities::prelude::Organizations;
+use crate::utils::GeneralError;
 use chrono::Utc;
 use reqwest::Client as HttpClient;
-use sea_orm::DbErr;
-use serde::Serialize;
+use sea_orm::{DatabaseConnection, DbErr, EntityTrait};
+use std::str::FromStr;
 use stripe::{
-    Client, CreateCustomer, CreateSubscription, CreateSubscriptionItems, CreateUsageRecord,
-    Customer, StripeError, Subscription, SubscriptionItemId, UsageRecord, UsageRecordAction,
+    Client, CreateCustomer, CreateSubscription, CreateSubscriptionItems, Customer, StripeError,
+    Subscription, SubscriptionId,
 };
 use thiserror::Error;
 use uuid::Uuid;
@@ -14,33 +16,21 @@ use uuid::Uuid;
 pub enum StripeClientError {
     #[error("Stripe error: {0}")]
     Stripe(#[from] StripeError),
-    #[error("Missing subscription item ID")]
-    MissingSubscriptionItem,
     #[error("Configuration error: {0}")]
-    Config(String),
-    #[error("Invalid data error: {0}")]
-    InvalidRequestError(String),
-    #[error("HTTP request error: {0}")]
     Http(#[from] reqwest::Error),
 }
 
-#[derive(Serialize)]
-struct MeterEventPayload {
-    stripe_customer_id: String,
-}
-
-#[derive(Serialize)]
-struct MeterEventRequest {
-    identifier: Uuid,
-    event_name: String,
-    timestamp: String,
-    payload: MeterEventPayload,
-}
 #[derive(Clone)]
 pub struct StripeClient {
     pub(crate) client: Client,
-    // Add a field for storing the raw secret key if needed
-    pub(crate) secret_key: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubscriptionInfo {
+    pub id: String,
+    pub monthly_limit: i64,
+    pub status: stripe::SubscriptionStatus,
+    pub metadata: std::collections::HashMap<String, String>,
 }
 
 impl StripeClient {
@@ -50,7 +40,6 @@ impl StripeClient {
 
         Ok(Self {
             client: Client::new(secret_key.clone()),
-            secret_key,
         })
     }
 
@@ -75,7 +64,7 @@ impl StripeClient {
         )
         .await?;
 
-        // Create subscription for customer
+        // Creates subscription for customer
         let price_id = std::env::var("STRIPE_PRICE_ID").expect("Missing STRIPE_PRICE_ID in env");
         let mut params = CreateSubscription::new(customer.id.clone());
         params.items = Some(vec![CreateSubscriptionItems {
@@ -87,9 +76,57 @@ impl StripeClient {
         let subscription = Subscription::create(&self.client, params).await?;
         let subscription_item_id = subscription.items.data[0].id.clone();
 
-        println!("@@@Created subscription id: {:?}", subscription_item_id);
-
         Ok((customer.id.to_string(), subscription_item_id.to_string()))
+    }
+
+    pub async fn get_subscription(
+        &self,
+        org_id: &Uuid,
+        db: &DatabaseConnection,
+    ) -> Result<SubscriptionInfo, GeneralError> {
+        // Get organization from database
+        let org = Organizations::find_by_id(*org_id)
+            .one(db)
+            .await
+            .map_err(|e| GeneralError::Internal(format!("Database error: {}", e)))?
+            .ok_or_else(|| GeneralError::NotFound(format!("Organization {} not found", org_id)))?;
+
+        // Check if org has a subscription
+        let subscription_id = org.stripe_subscription_id.ok_or_else(|| {
+            GeneralError::BadRequest(format!(
+                "Organization {} has no active subscription",
+                org_id
+            ))
+        })?;
+
+        // Get subscription from Stripe
+        let subscription = match Subscription::retrieve(
+            &self.client,
+            &SubscriptionId::from_str(&subscription_id).map_err(|_| {
+                GeneralError::Internal("Invalid subscription ID format".to_string())
+            })?,
+            &["items.data.price.product"],
+        )
+        .await
+        {
+            Ok(sub) => sub,
+            Err(e) => {
+                tracing::error!("Stripe API error: {:?}", e);
+                return Err(GeneralError::Internal(
+                    "Failed to fetch subscription from Stripe".to_string(),
+                ));
+            }
+        };
+
+        // Extract and validate subscription data
+        let monthly_limit = get_subscription_limit_with_errors(&subscription).await?;
+
+        Ok(SubscriptionInfo {
+            id: subscription.id.to_string(),
+            monthly_limit,
+            status: subscription.status,
+            metadata: subscription.metadata,
+        })
     }
 
     pub async fn report_api_usage(
@@ -161,4 +198,32 @@ impl StripeClient {
         );
         Ok(())
     }
+}
+
+pub async fn get_subscription_limit_with_errors(
+    subscription: &Subscription,
+) -> Result<i64, GeneralError> {
+    let item = subscription
+        .items
+        .data
+        .first()
+        .ok_or_else(|| GeneralError::Internal("No subscription items found".to_string()))?;
+
+    let price = item
+        .price
+        .as_ref()
+        .ok_or_else(|| GeneralError::Internal("No price information found".to_string()))?;
+
+    let metadata = price
+        .metadata
+        .as_ref()
+        .ok_or_else(|| GeneralError::Internal("No metadata found".to_string()))?;
+
+    let limit_str = metadata
+        .get("monthly_limit")
+        .ok_or_else(|| GeneralError::Internal("No monthly limit found in metadata".to_string()))?;
+
+    limit_str
+        .parse::<i64>()
+        .map_err(|_| GeneralError::Internal("Failed to parse monthly limit".to_string()))
 }
