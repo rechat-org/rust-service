@@ -1,5 +1,5 @@
 use crate::config::RedisStore;
-use crate::entities::prelude::Organizations;
+use crate::entities::prelude::{OrganizationTiers, Organizations};
 use crate::middleware::error::MiddlewareError;
 use crate::middleware::helpers::extract_organization_id;
 use crate::state::AppState;
@@ -25,19 +25,15 @@ impl FromRequestParts<AppState> for UsageLimiter {
         // Checks Redis cache first for usage
         let usage = check_and_increment_usage(&state, &org_id).await?;
 
-        // Gets subscription info from Stripe
-        let subscription = state
-            .stripe
-            .get_subscription(&org_id, &state.db.connection)
+        // Get organization tier info from database
+        let org_tier = OrganizationTiers::find_by_id(org_id)
+            .one(&state.db.connection)
             .await
-            .map_err(|e| MiddlewareError::StripeError(e.to_string()))?;
+            .map_err(|e| MiddlewareError::DatabaseError(e.to_string()))?
+            .ok_or_else(|| MiddlewareError::NotFound("Organization tier not found".into()))?;
 
-        // Extracts tier limit from subscription metadata
-        let tier_limit: i64 = subscription
-            .metadata
-            .get("monthly_limit")
-            .and_then(|l| l.parse().ok())
-            .ok_or_else(|| MiddlewareError::ConfigError("Invalid tier limit".into()))?;
+        // Get monthly limit from database
+        let tier_limit = org_tier.monthly_request_limit;
 
         // Checks if org is within limits
         if usage > tier_limit {

@@ -1,4 +1,4 @@
-use crate::entities::prelude::Organizations;
+use crate::entities::prelude::{OrganizationTiers, Organizations};
 use crate::utils::GeneralError;
 use chrono::Utc;
 use reqwest::Client as HttpClient;
@@ -123,12 +123,18 @@ impl StripeClient {
             }
         };
 
-        // Extract and validate subscription data
-        let monthly_limit = get_subscription_limit_with_errors(&subscription).await?;
+        // Get monthly limit from organization_tiers table
+        let org_tier = OrganizationTiers::find_by_id(*org_id)
+            .one(db)
+            .await
+            .map_err(|e| GeneralError::Internal(format!("Database error: {}", e)))?
+            .ok_or_else(|| {
+                GeneralError::NotFound(format!("Organization tier {} not found", org_id))
+            })?;
 
         Ok(SubscriptionInfo {
             id: subscription.id.to_string(),
-            monthly_limit,
+            monthly_limit: org_tier.monthly_request_limit,
             status: subscription.status,
             metadata: subscription.metadata,
         })
@@ -278,32 +284,4 @@ impl StripeClient {
 
         Ok(total_usage)
     }
-}
-
-pub async fn get_subscription_limit_with_errors(
-    subscription: &Subscription,
-) -> Result<i64, GeneralError> {
-    let item = subscription
-        .items
-        .data
-        .first()
-        .ok_or_else(|| GeneralError::Internal("No subscription items found".to_string()))?;
-
-    let price = item
-        .price
-        .as_ref()
-        .ok_or_else(|| GeneralError::Internal("No price information found".to_string()))?;
-
-    let metadata = price
-        .metadata
-        .as_ref()
-        .ok_or_else(|| GeneralError::Internal("No metadata found".to_string()))?;
-
-    let limit_str = metadata
-        .get("monthly_limit")
-        .ok_or_else(|| GeneralError::Internal("No monthly limit found in metadata".to_string()))?;
-
-    limit_str
-        .parse::<i64>()
-        .map_err(|_| GeneralError::Internal("Failed to parse monthly limit".to_string()))
 }

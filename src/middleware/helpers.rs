@@ -96,7 +96,7 @@ pub(crate) async fn track_api_usage(
         tracing::error!("Failed to report usage to Stripe: {}", e);
     }
 
-    // Update organization_tiers usage
+    // Update organization_tiers usage in db
     let update_result = OrganizationTiers::update_many()
         .col_expr(
             organization_tiers::Column::CurrentMonthUsage,
