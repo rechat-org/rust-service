@@ -49,7 +49,7 @@ async fn main() {
     let app = api_router().with_state(state);
 
     let addr = app_config.addr();
-    println!("🚀 Server running on http://{}", addr);
+    println!("🚀🚀 Server running on http://{}", addr);
 
     // Create and start the server
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
