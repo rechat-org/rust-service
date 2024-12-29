@@ -27,18 +27,8 @@ It works asynchronously to avoid impacting API response times and integrates wit
 3. Updates both Stripe and local database
 4. Returns immediately without blocking the request
 
-## How to Use
-
-### Basic Implementation
-
 ### Important Notes
 
 - Should only be applied to endpoints where you want to track API usage
 - Does not block or slow down the main request
 - Failures in tracking are logged but don't affect the API response
-
-### Configuration Requirements
-
-- Requires valid Stripe configuration
-- Needs database access for organization tracking
-- Organization must have a valid `stripe_subscription_item_id`
