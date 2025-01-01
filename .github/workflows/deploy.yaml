@@ -33,7 +33,9 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
@@ -61,7 +63,9 @@ jobs:
         run: |
           SHORT_SHA=$(echo $GITHUB_SHA | head -c7)
           docker tag $REGISTRY/$IMAGE_NAME:$GITHUB_SHA $REGISTRY/$IMAGE_NAME:$SHORT_SHA
+          docker tag $REGISTRY/$IMAGE_NAME:$GITHUB_SHA $REGISTRY/$IMAGE_NAME:latest
           docker push $REGISTRY/$IMAGE_NAME:$SHORT_SHA
+          docker push $REGISTRY/$IMAGE_NAME:latest
 
       # Deploy to Kubernetes
       - name: Save DigitalOcean kubeconfig
