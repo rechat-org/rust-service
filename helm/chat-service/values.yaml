@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: registry.digitalocean.com/chat-service/chat-api
-  tag: latest
+  tag: "50fe4e9"
   pullPolicy: Always
 
 nameOverride: ""
