@@ -57,10 +57,23 @@ imageCredentials:
 
 monitoring:
   enabled: true
+  namespace: monitoring
+  promtail:
+    image:
+      repository: grafana/promtail
+      tag: "2.9.1"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  loki:
+    enabled: true
+    url: http://loki.monitoring.svc.cluster.local:3100
   grafana:
     enabled: true
   prometheus:
     enabled: true
-  loki:
-    enabled: true
-    url: loki.monitoring.svc.cluster.local:3100

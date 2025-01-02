@@ -40,9 +40,9 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 
-        {{- if .Values.monitoring.enabled }}
+        {{- if and .Values.monitoring.enabled .Values.monitoring.promtail }}
         - name: promtail
-          image: "{{ .Values.monitoring.promtail.image.repository }}:{{ .Values.monitoring.promtail.image.tag }}"
+          image: "{{ .Values.monitoring.promtail.image.repository | default "grafana/promtail" }}:{{ .Values.monitoring.promtail.image.tag | default "2.9.1" }}"
           args:
             - -config.file=/etc/promtail/promtail.yaml
           volumeMounts:
