@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "chat-service.labels" . | nindent 4 }}
 imagePullSecrets:
-  - name: {{ include "chat-service.fullname" . }}-registry
+  - name: chat-service-registry
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
