@@ -15,7 +15,35 @@ use crate::config::StripeClient;
 use config::{AppConfig, Database, RedisConfig, RedisStore};
 use router::api_router;
 use state::AppState;
-use tracing_subscriber;
+use std::str::FromStr;
+use time::macros::format_description;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
+    // Get log level from environment or default to INFO
+    let log_level = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+
+    let env_filter = EnvFilter::from_str(&log_level)?;
+
+    // Set up JSON formatting for structured logging
+    let formatting_layer = fmt::layer()
+        .with_target(true) // Include target (module path)
+        .with_thread_ids(true) // Include thread IDs
+        .with_thread_names(true) // Include thread names
+        .with_file(true) // Include file name
+        .with_line_number(true) // Include line number
+        .with_level(true) // Include log level
+        .json() // Use JSON formatter
+        .with_current_span(true); // Include span context
+
+    // Combine filter and formatting
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(formatting_layer)
+        .init();
+
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() {

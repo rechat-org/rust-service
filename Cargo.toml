@@ -11,7 +11,7 @@ dotenvy = "0.15"
 sea-orm = { version = "1.1.2", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", ] }
 serde_json = "1.0.133"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["json"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager", "tokio-rustls-comp"] }
 futures = "0.3.31"
 chrono = { version = "0.4", features = ["serde"] }
@@ -19,12 +19,11 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 http = "1.2.0"
 jsonwebtoken = "9.3.0"
 bcrypt = "0.10"
-tower-http = { version = "0.6.2", features = ["auth"] }
+tower-http = { version = "0.6.2", features = ["auth","trace"] }
 thiserror = "2.0"
 log = "0.4.22"
 async-stripe = { version = "0.39.1", features = ["runtime-tokio-hyper"] }
 reqwest = { version = "0.12.9", features = ["json"] }
 hex = "0.4.3"
 sha2 = "0.10.8"
-
-
+time = "0.3.37"
