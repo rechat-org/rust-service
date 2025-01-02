@@ -81,5 +81,7 @@ jobs:
             --set "envVars.JWT_SECRET=${{ secrets.JWT_SECRET }}" \
             --set "envVars.STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" \
             --set "envVars.STRIPE_PRICE_ID=${{ secrets.STRIPE_PRICE_ID }}" \
+            --set "imageCredentials.username=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" \
+            --set "imageCredentials.password=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" \
             --wait --timeout 10m \
             --debug

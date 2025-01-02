@@ -41,8 +41,8 @@ resources:
     memory: 256Mi
 
 envVars:
-  DATABASE_URL: ""
-  REDIS_URL: ""
+  DATABASE_URL: "" # Will be set to DO managed database via gha
+  REDIS_URL: "" # Will be set to DO managed Redis via gha
   PORT: "3000"
   HOST: "0.0.0.0"
 
@@ -50,3 +50,8 @@ envVars:
 clusterIssuer:
   enabled: true
   email: paschalidi@outlook.com
+
+imageCredentials:
+  registry: registry.digitalocean.com
+  username: ""  # Will be set to DO API token via gha
+  password: ""  # Will be set to DO API token gha

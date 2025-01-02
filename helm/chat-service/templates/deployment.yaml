@@ -14,6 +14,7 @@ spec:
       labels:
         {{- include "chat-service.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "chat-service.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
