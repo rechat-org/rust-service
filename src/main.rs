@@ -16,7 +16,6 @@ use config::{AppConfig, Database, RedisConfig, RedisStore};
 use router::api_router;
 use state::AppState;
 use std::str::FromStr;
-use time::macros::format_description;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
@@ -51,7 +50,7 @@ async fn main() {
     dotenvy::dotenv().ok();
 
     // Initialize logging
-    tracing_subscriber::fmt::init();
+    setup_logging().expect("Failed to set up logging");
 
     let app_config = AppConfig::new();
 
