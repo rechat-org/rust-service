@@ -1,0 +1,14 @@
+# monitoring/service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chat-service
+  labels:
+    {{- include "chat-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "chat-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics

@@ -46,7 +46,6 @@ envVars:
   PORT: "3000"
   HOST: "0.0.0.0"
 
-# Add ClusterIssuer configuration
 clusterIssuer:
   enabled: true
   email: paschalidi@outlook.com
@@ -55,3 +54,13 @@ imageCredentials:
   registry: registry.digitalocean.com
   username: ""  # Will be set to DO API token via gha
   password: ""  # Will be set to DO API token gha
+
+monitoring:
+  enabled: true
+  grafana:
+    enabled: true
+  prometheus:
+    enabled: true
+  loki:
+    enabled: true
+    url: loki.monitoring.svc.cluster.local:3100

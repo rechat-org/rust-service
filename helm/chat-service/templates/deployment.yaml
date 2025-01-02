@@ -15,6 +15,12 @@ spec:
         {{- include "chat-service.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "chat-service.fullname" . }}
+      volumes:
+        - name: shared-logs
+          emptyDir: {}
+        - name: promtail-config
+          configMap:
+            name: {{ include "chat-service.fullname" . }}-promtail
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -28,5 +34,25 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /var/log
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
+        {{- if .Values.monitoring.enabled }}
+        - name: promtail
+          image: "{{ .Values.monitoring.promtail.image.repository }}:{{ .Values.monitoring.promtail.image.tag }}"
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /var/log
+            - name: promtail-config
+              mountPath: /etc/promtail
+          ports:
+            - containerPort: 9080
+              name: http-metrics
+          resources:
+            {{- toYaml .Values.monitoring.promtail.resources | nindent 12 }}
+        {{- end }}
