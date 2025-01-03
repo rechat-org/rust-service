@@ -32,7 +32,7 @@ pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
         .with_target(true)                // Include target (module path)
         .with_thread_ids(true)            // Include thread IDs
         .with_thread_names(true)          // Include thread names
-        .with_file(true)                   // Include file name
+        .with_file(true)                  // Include file name
         .with_line_number(true)           // Include line number
         .with_level(true)                 // Include log level
         .json()                                      // Format as JSON
