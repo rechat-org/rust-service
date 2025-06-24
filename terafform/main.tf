@@ -86,30 +86,31 @@ output "database_url" {
 
 
 # Create a Redis database cluster
-resource "digitalocean_database_cluster" "redis_cluster" {
-  name       = "chat-redis-cluster"
-  engine     = "redis"
-  version    = "7"
+resource "digitalocean_database_cluster" "valkey_cluster" {
+  name       = "chat-valkey-cluster"
+  engine     = "valkey"  # Changed from "redis" to "valkey"
+  version    = "8"       # Use version 8 as shown in your screenshot
   size       = "db-s-1vcpu-1gb"  # Smallest size for dev
   region     = var.region
   node_count = 1  # Single node for dev
 }
 
+
 # Add Redis connection outputs
 output "redis_host" {
-  value = digitalocean_database_cluster.redis_cluster.host
+  value = digitalocean_database_cluster.valkey_cluster.host
 }
 
 output "redis_port" {
-  value = digitalocean_database_cluster.redis_cluster.port
+  value = digitalocean_database_cluster.valkey_cluster.port
 }
 
 output "redis_password" {
-  value     = digitalocean_database_cluster.redis_cluster.password
+  value     = digitalocean_database_cluster.valkey_cluster.password
   sensitive = true
 }
 
 output "redis_url" {
-  value     = "redis://:${digitalocean_database_cluster.redis_cluster.password}@${digitalocean_database_cluster.redis_cluster.host}:${digitalocean_database_cluster.redis_cluster.port}"
+  value     = "redis://:${digitalocean_database_cluster.valkey_cluster.password}@${digitalocean_database_cluster.valkey_cluster.host}:${digitalocean_database_cluster.valkey_cluster.port}"
   sensitive = true
 }
