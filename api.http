@@ -5,7 +5,7 @@
 @participantId = af47181a-0bb4-4b50-9c80-517685b66cd1
 
 
-### Base Routes
+### Base Routes testing
 GET {{baseUrl}}/health
 
 ###
