@@ -1,7 +1,7 @@
 resource "digitalocean_kubernetes_cluster" "chat_cluster" {
   name    = "chat-cluster"
   region  = var.region
-  version = "1.31.1-do.5"
+  version = "1.31.9-do.0"
 
   node_pool {
     name       = "worker-pool"
