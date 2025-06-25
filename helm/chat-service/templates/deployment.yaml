@@ -15,8 +15,6 @@ spec:
         {{- include "chat-service.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "chat-service.fullname" . }}
-      imagePullSecrets:
-        - name: {{ include "chat-service.fullname" . }}-registry
       containers:
           - name: {{ .Chart.Name }}
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
