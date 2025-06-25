@@ -7,9 +7,14 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop existing tables
+        // Drop dependent tables first (messages table depends on channel)
         manager
-            .drop_table(Table::drop().table(Channel::Table).to_owned())
+            .drop_table(Table::drop().table(Messages::Table).if_exists().to_owned())
+            .await?;
+
+        // Drop existing channel table
+        manager
+            .drop_table(Table::drop().table(Channel::Table).if_exists().to_owned())
             .await?;
 
         // Create channels table
