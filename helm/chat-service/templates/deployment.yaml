@@ -15,21 +15,21 @@ spec:
         {{- include "chat-service.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "chat-service.fullname" . }}
-
+      imagePullSecrets:
+        - name: {{ include "chat-service.fullname" . }}-registry
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          env:
-            {{- range $key, $value := .Values.envVars }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
+          - name: {{ .Chart.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            ports:
+              - name: http
+                containerPort: {{ .Values.service.port }}
+                protocol: TCP
+            env:
+              {{- range $key, $value := .Values.envVars }}
+              - name: {{ $key }}
+                value: {{ $value | quote }}
+              {{- end }}
 
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-
+            resources:
+              {{- toYaml .Values.resources | nindent 12 }}
